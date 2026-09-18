@@ -86,19 +86,47 @@ async function verifyEmailToken(token){
   if(!cfg.VERIFY_EMAIL_CONFIRM_URL)
     throw new Error("VERIFY_EMAIL_CONFIRM_URL을 설정하세요.");
 
+  const {
+    data: { session }
+  } = await sb.auth.getSession();
+
+  if(!session?.access_token)
+    throw new Error("로그인 세션을 찾을 수 없습니다.");
+
   const r=await fetch(cfg.VERIFY_EMAIL_CONFIRM_URL,{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
+      "Authorization":`Bearer ${session.access_token}`,
       "apikey":cfg.SUPABASE_ANON_KEY
     },
-    body:JSON.stringify({token})
+    body:JSON.stringify({
+      token
+    })
   });
+
   let body=null;
-  try{ body=await r.json(); }catch{}
-  if(!r.ok) throw new Error(body?.message || "이메일 인증에 실패했습니다.");
+  try{
+    body=await r.json();
+  }catch{}
+
+  if(!r.ok)
+    throw new Error(
+      body?.message ||
+      body?.error ||
+      "이메일 인증에 실패했습니다."
+    );
+
   setVerified(30);
-  history.replaceState({},document.title,location.pathname+location.search.replace(/([?&])admin_token=[^&]*/,"").replace(/^&/,"?").replace(/\?$/,""));
+
+  const url=new URL(location.href);
+  url.searchParams.delete("admin_token");
+  history.replaceState(
+    {},
+    document.title,
+    url.pathname + url.search
+  );
+
   return true;
 }
 async function signIn(loginId,password){
