@@ -23,10 +23,18 @@ function setVerified(minutes=30){
 function clearVerified(){
   localStorage.removeItem(VERIFIED_KEY);
 }
-async function currentUser(){
-  const {data:{user},error}=await sb.auth.getUser();
-  if(error) throw error;
-  return user;
+async function currentUser() {
+  const {
+    data: { session },
+    error
+  } = await sb.auth.getSession();
+
+  if (error) {
+    console.error("세션 확인 오류:", error);
+    return null;
+  }
+
+  return session?.user ?? null;
 }
 async function loadProfile(user){
   const {data,error}=await sb.from("users")
