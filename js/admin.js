@@ -48,32 +48,33 @@ async function loadProfile(user){
   state.profile=data;
   $("#adminName").textContent=` · ${data.name||data.login_id||user.email||""}`;
 }
-async function resolveEmail(loginId){
-  if(!cfg.ADMIN_LOGIN_LOOKUP_URL)
-    throw new Error("ADMIN_LOGIN_LOOKUP_URL을 설정하세요.");
+async function resolveEmail(loginId) {
+  const response = await fetch(
+    cfg.ADMIN_LOGIN_LOOKUP_URL,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": cfg.SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({
+        login_id: loginId
+      })
+    }
+  );
 
-  const value=String(loginId||"").trim();
-  if(!value) throw new Error("계정 아이디를 입력하세요.");
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || "관리자 계정을 확인할 수 없습니다.");
+  }
 
-  const r=await fetch(cfg.ADMIN_LOGIN_LOOKUP_URL,{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "apikey":cfg.SUPABASE_ANON_KEY
-    },
-    body:JSON.stringify({login_id:value})
-  });
+  const data = await response.json();
 
-  let body=null;
-  try{ body=await r.json(); }catch{}
+  if (!data.email) {
+    throw new Error("관리자 이메일을 확인할 수 없습니다.");
+  }
 
-  if(!r.ok)
-    throw new Error(body?.message || "관리자 계정을 확인할 수 없습니다.");
-
-  if(!body?.email)
-    throw new Error("관리자 계정을 확인할 수 없습니다.");
-
-  return String(body.email);
+  return data.email;
 }
 async function requestEmailVerification(){
   if(!cfg.VERIFY_EMAIL_FUNCTION_URL)
