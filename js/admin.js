@@ -34,7 +34,24 @@ async function currentUser() {
     return null;
   }
 
-  return session?.user ?? null;
+  if (session?.user) {
+    return session.user;
+  }
+
+  // Supabase 세션 복원이 조금 늦는 경우를 대비
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  const {
+    data: { session: retrySession },
+    error: retryError
+  } = await sb.auth.getSession();
+
+  if (retryError) {
+    console.error("세션 재확인 오류:", retryError);
+    return null;
+  }
+
+  return retrySession?.user ?? null;
 }
 async function loadProfile(user){
   const {data,error}=await sb.from("users")
