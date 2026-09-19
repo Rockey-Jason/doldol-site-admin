@@ -13,7 +13,15 @@ const state = {
   user: null,
   profile: null,
   page: "dashboard",
-  selected: new Set()
+  selected: new Set(),
+
+  /*
+   * CRUD 페이지에서 현재 표시 중인 데이터를
+   * HTML onclick 속성에 JSON으로 직접 넣지 않기 위한 저장소
+   */
+  crudRows: [],
+  crudTable: null,
+  crudCols: []
 };
 
 const VERIFIED_KEY = "dori_admin_verified_until";
@@ -37,17 +45,21 @@ function toast(msg, ok = true) {
 }
 
 
-/* HTML Escape */
+/* =====================================================
+   HTML Escape
+===================================================== */
+
 function esc(v) {
   return String(v ?? "").replace(
     /[&<>"']/g,
-    m => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    }[m])
+    m =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[m])
   );
 }
 
@@ -125,7 +137,6 @@ function clearVerified() {
 ===================================================== */
 
 async function currentUser() {
-
   const {
     data: { session },
     error
@@ -149,7 +160,6 @@ async function currentUser() {
 ===================================================== */
 
 async function loadProfile(user) {
-
   if (!user?.id) {
     throw new Error(
       "로그인 사용자를 확인할 수 없습니다."
@@ -203,7 +213,6 @@ async function loadProfile(user) {
 ===================================================== */
 
 async function resolveEmail(loginId) {
-
   if (!cfg.ADMIN_LOGIN_LOOKUP_URL) {
     throw new Error(
       "ADMIN_LOGIN_LOOKUP_URL을 설정하세요."
@@ -230,7 +239,6 @@ async function resolveEmail(loginId) {
   );
 
   if (!response.ok) {
-
     const text =
       await response.text();
 
@@ -258,7 +266,6 @@ async function resolveEmail(loginId) {
 ===================================================== */
 
 async function requestEmailVerification() {
-
   if (!cfg.VERIFY_EMAIL_FUNCTION_URL) {
     throw new Error(
       "VERIFY_EMAIL_FUNCTION_URL을 설정하세요."
@@ -326,7 +333,6 @@ async function signIn(
   loginId,
   password
 ) {
-
   const id =
     String(loginId || "")
       .trim();
@@ -410,8 +416,7 @@ async function signIn(
 
 
   /* ---------------------------------------------------
-     5. 현재 브라우저에서는 관리자 화면을
-        바로 표시하지 않는다.
+     5. 이메일 인증 대기
   --------------------------------------------------- */
 
   $("#authStatus").textContent =
@@ -424,9 +429,7 @@ async function signIn(
 ===================================================== */
 
 async function boot() {
-
   try {
-
     const {
       data: { session },
       error
@@ -446,13 +449,8 @@ async function boot() {
     --------------------------------------------------- */
 
     if (user) {
-
       await loadProfile(user);
 
-      /*
-       * 현재 브라우저에서 Supabase Auth 세션이
-       * 정상적으로 만들어졌으므로 관리자 인증 완료.
-       */
       setVerified(30);
 
       showApp();
@@ -470,7 +468,6 @@ async function boot() {
     clearVerified();
 
   } catch (error) {
-
     console.error(
       "관리자 boot 오류:",
       error
@@ -482,7 +479,8 @@ async function boot() {
 
     clearVerified();
 
-    const authStatus = $("#authStatus");
+    const authStatus =
+      $("#authStatus");
 
     if (authStatus) {
       authStatus.textContent =
@@ -498,7 +496,6 @@ async function boot() {
 ===================================================== */
 
 function showApp() {
-
   $("#authGate")
     ?.classList
     .add("hidden");
@@ -514,10 +511,17 @@ function showApp() {
 ===================================================== */
 
 function render(page) {
-
   state.page = page;
 
   state.selected.clear();
+
+  /*
+   * 다른 페이지로 이동하면
+   * 이전 CRUD 데이터는 폐기한다.
+   */
+  state.crudRows = [];
+  state.crudTable = null;
+  state.crudCols = [];
 
   document
     .querySelectorAll("#nav button")
@@ -561,7 +565,6 @@ function render(page) {
 ===================================================== */
 
 async function count(table) {
-
   const {
     count,
     error
@@ -590,14 +593,17 @@ async function count(table) {
 ===================================================== */
 
 async function dashboard() {
-
   content.innerHTML = `
     <div class="hero">
-      <h1>돌이 관리자 센터 🐶</h1>
+
+      <h1>
+        돌이 관리자 센터 🐶
+      </h1>
 
       <p>
         사이트의 핵심 데이터를 한 곳에서 관리하세요.
       </p>
+
     </div>
 
     <div
@@ -606,11 +612,15 @@ async function dashboard() {
     ></div>
 
     <div class="panel">
-      <h2>최근 활동</h2>
+
+      <h2>
+        최근 활동
+      </h2>
 
       <div id="recent">
         불러오는 중...
       </div>
+
     </div>
   `;
 
@@ -662,7 +672,9 @@ async function dashboard() {
         </span>
 
         <b>
-          ${safeNumber(x[1]).toLocaleString()}
+          ${safeNumber(
+            x[1]
+          ).toLocaleString()}
         </b>
 
         <small>
@@ -682,7 +694,6 @@ async function dashboard() {
 ===================================================== */
 
 async function recent() {
-
   const {
     data,
     error
@@ -699,7 +710,6 @@ async function recent() {
       .limit(10);
 
   if (error) {
-
     $("#recent").innerHTML = `
       <div class="empty">
         ${esc(error.message)}
@@ -722,7 +732,11 @@ async function recent() {
                 </span>
 
                 <small>
-                  ${esc(formatDate(l.created_at))}
+                  ${esc(
+                    formatDate(
+                      l.created_at
+                    )
+                  )}
                 </small>
 
               </div>
@@ -739,7 +753,6 @@ async function recent() {
 ===================================================== */
 
 async function users() {
-
   content.innerHTML = `
     <div class="toolbar">
 
@@ -794,16 +807,9 @@ async function users() {
 ===================================================== */
 
 async function loadUsers(q) {
-
   const search =
     String(q || "").trim();
 
-  /*
-   * 관리자 전용 SECURITY DEFINER RPC
-   *
-   * public.users를 기준으로 회원을 조회하고
-   * auth.users 정보를 함께 반환하도록 구성.
-   */
   const {
     data,
     error
@@ -823,7 +829,6 @@ async function loadUsers(q) {
     );
 
   if (error) {
-
     console.error(
       "회원 목록 조회 오류:",
       error
@@ -1030,7 +1035,6 @@ async function loadUsers(q) {
     $("#all");
 
   if (all) {
-
     all.onchange =
       e => {
 
@@ -1053,7 +1057,6 @@ async function loadUsers(q) {
 ===================================================== */
 
 window.editUser = async u => {
-
   const currentCoins =
     safeNumber(
       u.doldolcoin
@@ -1118,7 +1121,6 @@ window.editUser = async u => {
     !Number.isFinite(expNumber) ||
     !Number.isInteger(levelNumber)
   ) {
-
     toast(
       "숫자를 정확하게 입력하세요.",
       false
@@ -1134,7 +1136,6 @@ window.editUser = async u => {
     levelNumber < 1 ||
     levelNumber > 10
   ) {
-
     toast(
       "코인/EXP/레벨 값을 확인하세요.",
       false
@@ -1165,7 +1166,6 @@ window.editUser = async u => {
     );
 
   if (error) {
-
     console.error(
       "회원 수정 오류:",
       error
@@ -1195,7 +1195,6 @@ window.editUser = async u => {
 ===================================================== */
 
 async function bulkReward() {
-
   const ids =
     [
       ...document
@@ -1209,7 +1208,6 @@ async function bulkReward() {
       );
 
   if (!ids.length) {
-
     return toast(
       "회원을 선택하세요.",
       false
@@ -1236,7 +1234,6 @@ async function bulkReward() {
     !Number.isFinite(coins) ||
     !Number.isInteger(coins)
   ) {
-
     return toast(
       "정수로 입력하세요.",
       false
@@ -1245,7 +1242,6 @@ async function bulkReward() {
 
 
   if (coins <= 0) {
-
     return toast(
       "지급 코인은 1 이상이어야 합니다.",
       false
@@ -1254,7 +1250,6 @@ async function bulkReward() {
 
 
   for (const id of ids) {
-
     const {
       error
     } =
@@ -1273,7 +1268,6 @@ async function bulkReward() {
       );
 
     if (error) {
-
       console.error(
         "코인 지급 오류:",
         error
@@ -1300,7 +1294,6 @@ async function bulkReward() {
 ===================================================== */
 
 async function news() {
-
   await crudPage(
     "📰 돌이신문",
     "rockey_news",
@@ -1325,7 +1318,6 @@ async function news() {
 ===================================================== */
 
 async function quiz() {
-
   await crudPage(
     "❓ 돌이 퀴즈",
     "rockey_news",
@@ -1353,7 +1345,6 @@ async function crudPage(
   table,
   cols
 ) {
-
   content.innerHTML = `
     <div class="toolbar">
 
@@ -1422,7 +1413,6 @@ async function crudPage(
 
 
   if (error) {
-
     $("#crud")
       .textContent =
       error.message;
@@ -1431,10 +1421,40 @@ async function crudPage(
   }
 
 
+  /*
+   * ===================================================
+   * 중요:
+   *
+   * 기존에는 여기에서:
+   *
+   * JSON.stringify(r)
+   *
+   * 를 onclick 안에 직접 넣고 있었다.
+   *
+   * 그 결과 특정 신문 본문에 따옴표/특수문자 등이
+   * 포함되면 HTML 속성이 깨질 수 있었다.
+   *
+   * 이제 실제 row 객체는 state.crudRows에 보관하고
+   * HTML에는 숫자 index만 넣는다.
+   * ===================================================
+   */
+
+  state.crudRows =
+    Array.isArray(data)
+      ? data
+      : [];
+
+  state.crudTable =
+    table;
+
+  state.crudCols =
+    cols;
+
+
   $("#crud").innerHTML =
-    (data || [])
+    state.crudRows
       .map(
-        r => `
+        (r, index) => `
           <div class="crud-row">
 
             <div>
@@ -1456,12 +1476,9 @@ async function crudPage(
             </div>
 
             <button
-              class="mini"
-              onclick='editRecord(
-                ${JSON.stringify(table)},
-                ${JSON.stringify(cols)},
-                ${JSON.stringify(r)}
-              )'
+              class="mini crud-edit"
+              type="button"
+              data-index="${index}"
             >
               수정
             </button>
@@ -1471,6 +1488,53 @@ async function crudPage(
       )
       .join("") ||
     "데이터가 없습니다.";
+
+
+  /*
+   * ===================================================
+   * 수정 버튼 이벤트 연결
+   * ===================================================
+   */
+
+  document
+    .querySelectorAll(".crud-edit")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const index =
+            Number(
+              button.dataset.index
+            );
+
+          if (
+            !Number.isInteger(index) ||
+            index < 0 ||
+            index >= state.crudRows.length
+          ) {
+            toast(
+              "수정할 데이터를 찾을 수 없습니다.",
+              false
+            );
+
+            return;
+          }
+
+          const row =
+            state.crudRows[index];
+
+          editRecord(
+            state.crudTable,
+            state.crudCols,
+            row
+          );
+
+        }
+      );
+
+    });
 }
 
 
@@ -1573,7 +1637,6 @@ window.editRecord =
 ===================================================== */
 
 async function box() {
-
   await crudPage(
     "🎁 랜덤박스 아이템",
     "dori_box_items",
@@ -1594,7 +1657,6 @@ async function box() {
 ===================================================== */
 
 async function events() {
-
   await crudPage(
     "🎉 이벤트",
     "rockey_news_events",
@@ -1614,7 +1676,6 @@ async function events() {
 ===================================================== */
 
 async function stats() {
-
   content.innerHTML = `
     <div class="grid cards">
 
@@ -1750,7 +1811,6 @@ async function stats() {
 ===================================================== */
 
 async function logs() {
-
   content.innerHTML = `
     <div class="panel">
 
@@ -1893,7 +1953,6 @@ async function logs() {
 ===================================================== */
 
 async function security() {
-
   content.innerHTML = `
     <div class="panel">
 
@@ -1928,10 +1987,9 @@ async function security() {
     $("#securityUsers");
 
   if (button) {
-
     button.onclick =
-      () => render("users");
-
+      () =>
+        render("users");
   }
 }
 
@@ -2042,9 +2100,11 @@ sb.auth.onAuthStateChange(
       event
     );
 
-    /*
-     * SIGNED_OUT이면 관리자 화면을 닫는다.
-     */
+
+    /* ---------------------------------------------------
+       SIGNED_OUT이면 관리자 화면을 닫는다.
+    --------------------------------------------------- */
+
     if (event === "SIGNED_OUT") {
 
       clearVerified();
@@ -2061,10 +2121,11 @@ sb.auth.onAuthStateChange(
     }
 
 
-    /*
-     * Magic Link 또는 다른 Auth 흐름으로
-     * 세션이 새로 만들어진 경우.
-     */
+    /* ---------------------------------------------------
+       Magic Link 또는 다른 Auth 흐름으로
+       세션이 새로 만들어진 경우.
+    --------------------------------------------------- */
+
     if (
       event === "SIGNED_IN" ||
       event === "TOKEN_REFRESHED"
@@ -2084,15 +2145,21 @@ sb.auth.onAuthStateChange(
 
         showApp();
 
+
         /*
          * 현재 이미 다른 페이지를 보고 있다면
          * 무조건 dashboard로 이동시키지 않는다.
          */
+
         if (
           !state.page ||
           state.page === "dashboard"
         ) {
-          render("dashboard");
+
+          render(
+            "dashboard"
+          );
+
         }
 
       } catch (error) {
