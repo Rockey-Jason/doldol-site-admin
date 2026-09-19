@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050b18">
+<title>돌이 ADMIN · Control Center</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div class="ambient"></div>
+<div id="authGate" class="auth-gate">
+  <div class="auth-card glass">
+    <div class="brand-mark">🐶</div><div class="eyebrow">DOLDOL ADMIN CONTROL</div>
+    <h1>돌이 관리자 센터</h1>
+    <p class="muted">회원 · 신문 · 퀴즈 · 경제 · 이벤트를 한 곳에서 관리합니다.</p>
+    <form id="loginForm" class="auth-form">
+      <label>계정 아이디<input id="loginId" autocomplete="username" placeholder="login_id" required></label>
+      <label>계정 비밀번호<input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required></label>
+      <button class="primary big" type="submit">안전하게 로그인</button>
+    </form>
+    <div id="authStatus" class="status"></div>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+  <aside class="sidebar glass">
+    <div class="brand"><span class="brand-mark small">🐶</span><div><b>돌이 ADMIN</b><small>CONTROL CENTER</small></div></div>
+    <nav id="nav">
+      <button data-page="dashboard" class="active"><span>⌂</span>대시보드</button>
+      <button data-page="users"><span>👥</span>회원 관리</button>
+      <button data-page="news"><span>📰</span>돌이신문</button>
+      <button data-page="quiz"><span>❓</span>돌이퀴즈</button>
+      <button data-page="box"><span>🎁</span>랜덤박스</button>
+      <button data-page="events"><span>🎉</span>이벤트</button>
+      <button data-page="economy"><span>🪙</span>코인 내역</button>
+      <button data-page="stats"><span>📊</span>통계</button>
+      <button data-page="logs"><span>🧾</span>활동 로그</button>
+      <button data-page="security"><span>🛡️</span>보안</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="admin-mini"><span>●</span><div><b id="adminName">관리자</b><small>Authenticated</small></div></div>
+      <button id="logout" class="logout">↪ 로그아웃</button>
+    </div>
+  </aside>
+  <main>
+    <header class="topbar glass">
+      <div><div class="eyebrow">DOLDOL OPERATIONS</div><h2 id="pageTitle">대시보드</h2></div>
+      <div class="top-actions"><span class="live-dot">LIVE</span><span class="pill">ADMIN VERIFIED</span></div>
+    </header>
+    <section id="content" class="content"></section>
+  </main>
+</div>
+<div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script><script src="js/admin.js"></script>
+</body></html>
