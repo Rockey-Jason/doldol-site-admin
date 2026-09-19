@@ -26,6 +26,8 @@ const VERIFIED_KEY = "dori_admin_verified_until";
 function toast(msg, ok = true) {
   const e = $("#toast");
 
+  if (!e) return;
+
   e.textContent = msg;
   e.className = ok ? "show ok" : "show";
 
@@ -35,6 +37,7 @@ function toast(msg, ok = true) {
 }
 
 
+/* HTML Escape */
 function esc(v) {
   return String(v ?? "").replace(
     /[&<>"']/g,
@@ -48,8 +51,15 @@ function esc(v) {
   );
 }
 
+
+/* =====================================================
+   날짜 표시
+===================================================== */
+
 function formatDate(value) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   const d = new Date(value);
 
@@ -65,6 +75,19 @@ function formatDate(value) {
     minute: "2-digit",
     second: "2-digit"
   });
+}
+
+
+/* =====================================================
+   숫자 안전 처리
+===================================================== */
+
+function safeNumber(value, fallback = 0) {
+  const n = Number(value);
+
+  return Number.isFinite(n)
+    ? n
+    : fallback;
 }
 
 
@@ -139,7 +162,10 @@ async function loadProfile(user) {
   } = await sb
     .from("users")
     .select("*")
-    .eq("user_id", String(user.id))
+    .eq(
+      "user_id",
+      String(user.id)
+    )
     .single();
 
   if (error) {
@@ -158,13 +184,17 @@ async function loadProfile(user) {
   state.user = user;
   state.profile = data;
 
-  $("#adminName").textContent =
-    ` · ${
-      data.name ||
-      data.login_id ||
-      user.email ||
-      ""
-    }`;
+  const adminName = $("#adminName");
+
+  if (adminName) {
+    adminName.textContent =
+      ` · ${
+        data.name ||
+        data.login_id ||
+        user.email ||
+        ""
+      }`;
+  }
 }
 
 
@@ -274,7 +304,7 @@ async function requestEmailVerification() {
 
   try {
     body = await response.json();
-  } catch {}
+  } catch (_) {}
 
   if (!response.ok) {
     throw new Error(
@@ -318,9 +348,10 @@ async function signIn(
 
   clearVerified();
 
-  /* -----------------------------------------------
+
+  /* ---------------------------------------------------
      1. login_id 확인
-  ------------------------------------------------ */
+  --------------------------------------------------- */
 
   $("#authStatus").textContent =
     "관리자 계정을 확인하는 중…";
@@ -329,9 +360,9 @@ async function signIn(
     await resolveEmail(id);
 
 
-  /* -----------------------------------------------
+  /* ---------------------------------------------------
      2. Supabase 비밀번호 로그인
-  ------------------------------------------------ */
+  --------------------------------------------------- */
 
   $("#authStatus").textContent =
     "비밀번호를 확인하는 중…";
@@ -356,9 +387,9 @@ async function signIn(
   }
 
 
-  /* -----------------------------------------------
+  /* ---------------------------------------------------
      3. 관리자 권한 확인
-  ------------------------------------------------ */
+  --------------------------------------------------- */
 
   $("#authStatus").textContent =
     "관리자 권한을 확인하는 중…";
@@ -368,9 +399,9 @@ async function signIn(
   );
 
 
-  /* -----------------------------------------------
+  /* ---------------------------------------------------
      4. 이메일 인증 링크 발송
-  ------------------------------------------------ */
+  --------------------------------------------------- */
 
   $("#authStatus").textContent =
     "관리자 이메일 인증 메일을 보내는 중…";
@@ -378,13 +409,13 @@ async function signIn(
   await requestEmailVerification();
 
 
-  /* -----------------------------------------------
-     로그인 브라우저에는 아직 관리자 화면을
-     바로 보여주지 않는다.
-  ------------------------------------------------ */
+  /* ---------------------------------------------------
+     5. 현재 브라우저에서는 관리자 화면을
+        바로 표시하지 않는다.
+  --------------------------------------------------- */
 
   $("#authStatus").textContent =
-    "인증 메일을 확인해 주세요. 다른 브라우저에서 열어도 됩니다.";
+    "인증 메일을 확인해 주세요. 이메일의 인증 링크를 열면 관리자 사이트에 로그인됩니다.";
 }
 
 
@@ -395,29 +426,6 @@ async function signIn(
 async function boot() {
 
   try {
-
-    /*
-     * =================================================
-     * 중요
-     *
-     * 기존 방식:
-     *
-     *   URL ?admin_token=...
-     *          ↓
-     *   기존 브라우저 세션 확인
-     *
-     * 새로운 방식:
-     *
-     *   이메일 Magic Link
-     *          ↓
-     *   Supabase Auth
-     *          ↓
-     *   현재 브라우저에 새로운 세션 생성
-     *
-     * 따라서 admin_token을 직접 검사하지 않는다.
-     * =================================================
-     */
-
 
     const {
       data: { session },
@@ -433,39 +441,21 @@ async function boot() {
       session?.user ?? null;
 
 
-    /* -----------------------------------------------
-       세션이 존재하는 경우
-    ------------------------------------------------ */
+    /* ---------------------------------------------------
+       Supabase 세션이 존재하는 경우
+    --------------------------------------------------- */
 
     if (user) {
 
-      /*
-       * 현재 브라우저에서 생성된 Supabase
-       * 세션의 사용자가 진짜 관리자인지 확인
-       */
-
       await loadProfile(user);
 
-
       /*
-       * 관리자 인증 완료
-       *
-       * 30분 동안 현재 브라우저에서 유지
+       * 현재 브라우저에서 Supabase Auth 세션이
+       * 정상적으로 만들어졌으므로 관리자 인증 완료.
        */
-
       setVerified(30);
 
-
-      /*
-       * 관리자 앱 표시
-       */
-
       showApp();
-
-
-      /*
-       * 대시보드 표시
-       */
 
       render("dashboard");
 
@@ -473,9 +463,9 @@ async function boot() {
     }
 
 
-    /* -----------------------------------------------
+    /* ---------------------------------------------------
        세션이 없는 경우
-    ------------------------------------------------ */
+    --------------------------------------------------- */
 
     clearVerified();
 
@@ -492,9 +482,13 @@ async function boot() {
 
     clearVerified();
 
-    $("#authStatus").textContent =
-      error?.message ||
-      "관리자 인증에 실패했습니다.";
+    const authStatus = $("#authStatus");
+
+    if (authStatus) {
+      authStatus.textContent =
+        error?.message ||
+        "관리자 인증에 실패했습니다.";
+    }
   }
 }
 
@@ -506,11 +500,11 @@ async function boot() {
 function showApp() {
 
   $("#authGate")
-    .classList
+    ?.classList
     .add("hidden");
 
   $("#app")
-    .classList
+    ?.classList
     .remove("hidden");
 }
 
@@ -534,16 +528,16 @@ function render(page) {
       )
     );
 
+  const navButton =
+    document.querySelector(
+      `#nav button[data-page="${page}"]`
+    );
+
   $("#pageTitle").textContent =
-    document
-      .querySelector(
-        `#nav button[data-page="${page}"]`
-      )
-      ?.textContent
-      .trim() ||
+    navButton?.textContent.trim() ||
     "관리";
 
-  ({
+  const pages = {
     dashboard,
     users,
     news,
@@ -553,7 +547,12 @@ function render(page) {
     stats,
     logs,
     security
-  }[page] || dashboard)();
+  };
+
+  const pageFunction =
+    pages[page] || dashboard;
+
+  pageFunction();
 }
 
 
@@ -564,13 +563,23 @@ function render(page) {
 async function count(table) {
 
   const {
-    count
+    count,
+    error
   } = await sb
     .from(table)
     .select("*", {
       count: "exact",
       head: true
     });
+
+  if (error) {
+    console.error(
+      `${table} count 오류:`,
+      error
+    );
+
+    return 0;
+  }
 
   return count || 0;
 }
@@ -585,6 +594,7 @@ async function dashboard() {
   content.innerHTML = `
     <div class="hero">
       <h1>돌이 관리자 센터 🐶</h1>
+
       <p>
         사이트의 핵심 데이터를 한 곳에서 관리하세요.
       </p>
@@ -597,6 +607,7 @@ async function dashboard() {
 
     <div class="panel">
       <h2>최근 활동</h2>
+
       <div id="recent">
         불러오는 중...
       </div>
@@ -604,10 +615,10 @@ async function dashboard() {
   `;
 
   const [
-    users,
-    news,
-    items,
-    events
+    usersCount,
+    newsCount,
+    itemsCount,
+    eventsCount
   ] =
     await Promise.all([
       count("users"),
@@ -617,16 +628,47 @@ async function dashboard() {
     ]);
 
   $("#cards").innerHTML = [
-    ["회원", users, "👥"],
-    ["신문", news, "📰"],
-    ["랜덤박스 아이템", items, "🎁"],
-    ["이벤트", events, "🎉"]
+
+    [
+      "회원",
+      usersCount,
+      "👥"
+    ],
+
+    [
+      "신문",
+      newsCount,
+      "📰"
+    ],
+
+    [
+      "랜덤박스 아이템",
+      itemsCount,
+      "🎁"
+    ],
+
+    [
+      "이벤트",
+      eventsCount,
+      "🎉"
+    ]
+
   ]
     .map(x => `
       <div class="stat-card">
-        <span>${x[2]}</span>
-        <b>${x[1].toLocaleString()}</b>
-        <small>${x[0]}</small>
+
+        <span>
+          ${x[2]}
+        </span>
+
+        <b>
+          ${safeNumber(x[1]).toLocaleString()}
+        </b>
+
+        <small>
+          ${esc(x[0])}
+        </small>
+
       </div>
     `)
     .join("");
@@ -642,7 +684,8 @@ async function dashboard() {
 async function recent() {
 
   const {
-    data
+    data,
+    error
   } =
     await sb
       .from("admin_logs")
@@ -655,6 +698,17 @@ async function recent() {
       )
       .limit(10);
 
+  if (error) {
+
+    $("#recent").innerHTML = `
+      <div class="empty">
+        ${esc(error.message)}
+      </div>
+    `;
+
+    return;
+  }
+
   $("#recent").innerHTML =
     data?.length
 
@@ -662,15 +716,15 @@ async function recent() {
           .map(
             l => `
               <div class="row">
+
                 <span>
                   ${esc(l.action)}
                 </span>
 
                 <small>
-                  ${new Date(
-                    l.created_at
-                  ).toLocaleString()}
+                  ${esc(formatDate(l.created_at))}
                 </small>
+
               </div>
             `
           )
@@ -711,9 +765,11 @@ async function users() {
     </div>
 
     <div class="panel">
+
       <div id="userTable">
         불러오는 중...
       </div>
+
     </div>
   `;
 
@@ -739,39 +795,86 @@ async function users() {
 
 async function loadUsers(q) {
 
+  const search =
+    String(q || "").trim();
+
   /*
-   * 회원 목록은 관리자 전용 SECURITY DEFINER RPC를 사용합니다.
-   * 이 함수는 public.users를 기준으로 auth.users를 LEFT JOIN하므로
-   * Auth 계정이 없는 users 행도 회원 목록에서 사라지지 않습니다.
-   * 관리자 여부는 조회 필터가 아니라 각 행의 정보로만 표시합니다.
+   * 관리자 전용 SECURITY DEFINER RPC
+   *
+   * public.users를 기준으로 회원을 조회하고
+   * auth.users 정보를 함께 반환하도록 구성.
    */
-  const { data, error } = await sb.rpc("admin_list_users", {
-    p_search: q || null,
-    p_limit: 500,
-    p_offset: 0
-  });
+  const {
+    data,
+    error
+  } =
+    await sb.rpc(
+      "admin_list_users",
+      {
+        p_search:
+          search || null,
+
+        p_limit:
+          500,
+
+        p_offset:
+          0
+      }
+    );
 
   if (error) {
-    console.error("회원 목록 조회 오류:", error);
+
+    console.error(
+      "회원 목록 조회 오류:",
+      error
+    );
+
     $("#userTable").innerHTML = `
       <div class="empty">
-        <b>회원 목록을 불러오지 못했습니다.</b>
+
+        <b>
+          회원 목록을 불러오지 못했습니다.
+        </b>
+
         <br>
-        <small>${esc(error.message)}</small>
+
+        <small>
+          ${esc(error.message)}
+        </small>
+
         <br><br>
-        <small>Supabase SQL의 admin_list_users()가 배포되어 있는지 확인하세요.</small>
+
+        <small>
+          Supabase SQL의
+          admin_list_users()
+          함수가 배포되어 있는지 확인하세요.
+        </small>
+
       </div>
     `;
+
     return;
   }
 
-  const rows = Array.isArray(data) ? data : [];
+  const rows =
+    Array.isArray(data)
+      ? data
+      : [];
 
   $("#userTable").innerHTML = `
     <table>
+
       <thead>
+
         <tr>
-          <th><input type="checkbox" id="all"></th>
+
+          <th>
+            <input
+              type="checkbox"
+              id="all"
+            >
+          </th>
+
           <th>번호</th>
           <th>아이디</th>
           <th>이름</th>
@@ -782,48 +885,165 @@ async function loadUsers(q) {
           <th>Auth 상태</th>
           <th>최근 로그인</th>
           <th>조작</th>
+
         </tr>
+
       </thead>
+
       <tbody>
-        ${rows.length ? rows.map(u => `
-          <tr>
-            <td>
-              <input type="checkbox" class="sel" data-id="${esc(u.user_id)}">
-            </td>
-            <td>${esc(u.user_number)}</td>
-            <td>${esc(u.login_id)}</td>
-            <td>${esc(u.name)}</td>
-            <td>Lv.${esc(u.user_level)}</td>
-            <td>${Number(u.doldolcoin || 0).toLocaleString()}</td>
-            <td>${Number(u.exp || 0).toLocaleString()}</td>
-            <td>
-              <span class="pill ${u.is_admin ? "" : "muted"}">
-                ${u.is_admin ? "관리자" : "일반 회원"}
-              </span>
-            </td>
-            <td>
-              ${u.auth_user_id
-                ? (u.email_confirmed_at ? "인증됨" : "미인증")
-                : "Auth 없음"}
-            </td>
-            <td>${esc(formatDate(u.last_sign_in_at))}</td>
-            <td>
-              <button class="mini" onclick='editUser(${JSON.stringify(u)})'>수정</button>
-            </td>
-          </tr>
-        `).join("") : `
-          <tr><td colspan="11" class="empty">조회된 회원이 없습니다.</td></tr>
-        `}
+
+        ${
+          rows.length
+
+            ? rows
+                .map(
+                  u => {
+
+                    const userJson =
+                      JSON.stringify(u)
+                        .replace(
+                          /'/g,
+                          "&#39;"
+                        );
+
+                    return `
+                      <tr>
+
+                        <td>
+                          <input
+                            type="checkbox"
+                            class="sel"
+                            data-id="${esc(u.user_id)}"
+                          >
+                        </td>
+
+                        <td>
+                          ${esc(u.user_number)}
+                        </td>
+
+                        <td>
+                          ${esc(u.login_id)}
+                        </td>
+
+                        <td>
+                          ${esc(u.name)}
+                        </td>
+
+                        <td>
+                          Lv.${esc(u.user_level)}
+                        </td>
+
+                        <td>
+                          ${safeNumber(
+                            u.doldolcoin
+                          ).toLocaleString()}
+                        </td>
+
+                        <td>
+                          ${safeNumber(
+                            u.exp
+                          ).toLocaleString()}
+                        </td>
+
+                        <td>
+
+                          <span
+                            class="pill ${
+                              u.is_admin
+                                ? ""
+                                : "muted"
+                            }"
+                          >
+
+                            ${
+                              u.is_admin
+                                ? "관리자"
+                                : "일반 회원"
+                            }
+
+                          </span>
+
+                        </td>
+
+                        <td>
+
+                          ${
+                            u.auth_user_id
+
+                              ? (
+                                  u.email_confirmed_at
+                                    ? "인증됨"
+                                    : "미인증"
+                                )
+
+                              : "Auth 없음"
+                          }
+
+                        </td>
+
+                        <td>
+                          ${esc(
+                            formatDate(
+                              u.last_sign_in_at
+                            )
+                          )}
+                        </td>
+
+                        <td>
+
+                          <button
+                            class="mini"
+                            onclick='editUser(${userJson})'
+                          >
+                            수정
+                          </button>
+
+                        </td>
+
+                      </tr>
+                    `;
+                  }
+                )
+                .join("")
+
+            : `
+              <tr>
+
+                <td
+                  colspan="11"
+                  class="empty"
+                >
+                  조회된 회원이 없습니다.
+                </td>
+
+              </tr>
+            `
+        }
+
       </tbody>
+
     </table>
   `;
 
-  const all = $("#all");
+
+  const all =
+    $("#all");
+
   if (all) {
-    all.onchange = e =>
-      document.querySelectorAll(".sel").forEach(x => {
-        x.checked = e.target.checked;
-      });
+
+    all.onchange =
+      e => {
+
+        document
+          .querySelectorAll(".sel")
+          .forEach(x => {
+
+            x.checked =
+              e.target.checked;
+
+          });
+
+      };
   }
 }
 
@@ -834,39 +1054,95 @@ async function loadUsers(q) {
 
 window.editUser = async u => {
 
+  const currentCoins =
+    safeNumber(
+      u.doldolcoin
+    );
+
+  const currentExp =
+    safeNumber(
+      u.exp
+    );
+
+  const currentLevel =
+    safeNumber(
+      u.user_level
+    );
+
+
   const coins =
     prompt(
-      "돌돌코인 (현재 " +
-      u.doldolcoin +
-      ")",
-      u.doldolcoin
+      `돌돌코인 (현재 ${currentCoins})`,
+      String(currentCoins)
     );
 
   if (coins === null) {
     return;
   }
 
+
   const exp =
     prompt(
-      "EXP (현재 " +
-      u.exp +
-      ")",
-      u.exp
+      `EXP (현재 ${currentExp})`,
+      String(currentExp)
     );
 
   if (exp === null) {
     return;
   }
 
+
   const level =
     prompt(
       "user_level",
-      u.user_level
+      String(currentLevel)
     );
 
   if (level === null) {
     return;
   }
+
+
+  const coinNumber =
+    Number(coins);
+
+  const expNumber =
+    Number(exp);
+
+  const levelNumber =
+    Number(level);
+
+
+  if (
+    !Number.isFinite(coinNumber) ||
+    !Number.isFinite(expNumber) ||
+    !Number.isInteger(levelNumber)
+  ) {
+
+    toast(
+      "숫자를 정확하게 입력하세요.",
+      false
+    );
+
+    return;
+  }
+
+
+  if (
+    coinNumber < 0 ||
+    expNumber < 0 ||
+    levelNumber < 1 ||
+    levelNumber > 10
+  ) {
+
+    toast(
+      "코인/EXP/레벨 값을 확인하세요.",
+      false
+    );
+
+    return;
+  }
+
 
   const {
     error
@@ -875,36 +1151,42 @@ window.editUser = async u => {
       "admin_update_user",
       {
         p_user_id:
-          u.user_id,
+          String(u.user_id),
 
         p_doldolcoin:
-          Number(coins),
+          coinNumber,
 
         p_exp:
-          Number(exp),
+          expNumber,
 
         p_user_level:
-          Number(level)
+          levelNumber
       }
     );
 
   if (error) {
+
+    console.error(
+      "회원 수정 오류:",
+      error
+    );
 
     toast(
       error.message,
       false
     );
 
-  } else {
-
-    toast(
-      "회원 정보가 수정되었습니다."
-    );
-
-    loadUsers(
-      $("#userSearch").value
-    );
+    return;
   }
+
+
+  toast(
+    "회원 정보가 수정되었습니다."
+  );
+
+  await loadUsers(
+    $("#userSearch")?.value || ""
+  );
 };
 
 
@@ -934,17 +1216,42 @@ async function bulkReward() {
     );
   }
 
-  const coins =
-    Number(
-      prompt(
-        "선택 회원에게 지급할 돌돌코인",
-        "1000"
-      )
+
+  const input =
+    prompt(
+      "선택 회원에게 지급할 돌돌코인",
+      "1000"
     );
 
-  if (!Number.isFinite(coins)) {
+  if (input === null) {
     return;
   }
+
+
+  const coins =
+    Number(input);
+
+
+  if (
+    !Number.isFinite(coins) ||
+    !Number.isInteger(coins)
+  ) {
+
+    return toast(
+      "정수로 입력하세요.",
+      false
+    );
+  }
+
+
+  if (coins <= 0) {
+
+    return toast(
+      "지급 코인은 1 이상이어야 합니다.",
+      false
+    );
+  }
+
 
   for (const id of ids) {
 
@@ -954,14 +1261,23 @@ async function bulkReward() {
       await sb.rpc(
         "admin_adjust_coins",
         {
-          p_user_id: id,
-          p_amount: coins,
+          p_user_id:
+            String(id),
+
+          p_amount:
+            coins,
+
           p_reason:
             "관리자 일괄 지급"
         }
       );
 
     if (error) {
+
+      console.error(
+        "코인 지급 오류:",
+        error
+      );
 
       return toast(
         error.message,
@@ -970,11 +1286,12 @@ async function bulkReward() {
     }
   }
 
+
   toast(
     `${ids.length}명에게 지급했습니다.`
   );
 
-  loadUsers("");
+  await loadUsers("");
 }
 
 
@@ -984,7 +1301,7 @@ async function bulkReward() {
 
 async function news() {
 
-  crudPage(
+  await crudPage(
     "📰 돌이신문",
     "rockey_news",
     [
@@ -1009,7 +1326,7 @@ async function news() {
 
 async function quiz() {
 
-  crudPage(
+  await crudPage(
     "❓ 돌이 퀴즈",
     "rockey_news",
     [
@@ -1059,7 +1376,7 @@ async function crudPage(
     <div class="panel">
 
       <h2>
-        ${title}
+        ${esc(title)}
       </h2>
 
       <div id="crud">
@@ -1069,6 +1386,7 @@ async function crudPage(
     </div>
   `;
 
+
   $("#add").onclick =
     () =>
       editRecord(
@@ -1077,6 +1395,7 @@ async function crudPage(
         {}
       );
 
+
   $("#refresh").onclick =
     () =>
       crudPage(
@@ -1084,6 +1403,7 @@ async function crudPage(
         table,
         cols
       );
+
 
   const {
     data,
@@ -1100,6 +1420,7 @@ async function crudPage(
       )
       .limit(200);
 
+
   if (error) {
 
     $("#crud")
@@ -1109,42 +1430,46 @@ async function crudPage(
     return;
   }
 
+
   $("#crud").innerHTML =
-    data?.map(
-      r => `
-        <div class="crud-row">
+    (data || [])
+      .map(
+        r => `
+          <div class="crud-row">
 
-          <div>
+            <div>
 
-            <b>
-              ${esc(r[cols[0]])}
-            </b>
+              <b>
+                ${esc(
+                  r[cols[0]]
+                )}
+              </b>
 
-            <span>
-              ${esc(
-                r.rockey_news ||
-                r.question ||
-                ""
-              )}
-            </span>
+              <span>
+                ${esc(
+                  r.rockey_news ||
+                  r.question ||
+                  ""
+                )}
+              </span>
+
+            </div>
+
+            <button
+              class="mini"
+              onclick='editRecord(
+                ${JSON.stringify(table)},
+                ${JSON.stringify(cols)},
+                ${JSON.stringify(r)}
+              )'
+            >
+              수정
+            </button>
 
           </div>
-
-          <button
-            class="mini"
-            onclick='editRecord(
-              ${JSON.stringify(table)},
-              ${JSON.stringify(cols)},
-              ${JSON.stringify(r)}
-            )'
-          >
-            수정
-          </button>
-
-        </div>
-      `
-    )
-    .join("") ||
+        `
+      )
+      .join("") ||
     "데이터가 없습니다.";
 }
 
@@ -1162,6 +1487,7 @@ window.editRecord =
 
     const payload = {};
 
+
     for (const c of cols) {
 
       const v =
@@ -1174,49 +1500,71 @@ window.editRecord =
         return;
       }
 
-      payload[c] = v;
+      payload[c] =
+        v;
     }
+
 
     const key =
       cols[0];
 
-    const q =
+
+    let query;
+
+
+    if (
       row[key] != null
+    ) {
 
-        ? sb
-            .from(table)
-            .update(payload)
-            .eq(
-              key,
-              row[key]
-            )
+      query =
+        sb
+          .from(table)
+          .update(payload)
+          .eq(
+            key,
+            row[key]
+          );
 
-        : sb
-            .from(table)
-            .insert(payload);
+    } else {
+
+      query =
+        sb
+          .from(table)
+          .insert(payload);
+
+    }
+
 
     const {
       error
     } =
-      await q;
+      await query;
+
 
     if (error) {
+
+      console.error(
+        "저장 오류:",
+        error
+      );
 
       toast(
         error.message,
         false
       );
 
-    } else {
-
-      toast(
-        "저장되었습니다."
-      );
-
-      render(
-        state.page
-      );
+      return;
     }
+
+
+    toast(
+      "저장되었습니다."
+    );
+
+
+    await render(
+      state.page
+    );
   };
 
 
@@ -1226,7 +1574,7 @@ window.editRecord =
 
 async function box() {
 
-  crudPage(
+  await crudPage(
     "🎁 랜덤박스 아이템",
     "dori_box_items",
     [
@@ -1247,7 +1595,7 @@ async function box() {
 
 async function events() {
 
-  crudPage(
+  await crudPage(
     "🎉 이벤트",
     "rockey_news_events",
     [
@@ -1271,24 +1619,57 @@ async function stats() {
     <div class="grid cards">
 
       <div class="stat-card">
-        <span>📈</span>
-        <b id="uc">-</b>
-        <small>회원</small>
+
+        <span>
+          📈
+        </span>
+
+        <b id="uc">
+          -
+        </b>
+
+        <small>
+          회원
+        </small>
+
       </div>
 
-      <div class="stat-card">
-        <span>🪙</span>
-        <b id="tc">-</b>
-        <small>총 돌돌코인</small>
-      </div>
 
       <div class="stat-card">
-        <span>⭐</span>
-        <b id="te">-</b>
-        <small>총 EXP</small>
+
+        <span>
+          🪙
+        </span>
+
+        <b id="tc">
+          -
+        </b>
+
+        <small>
+          총 돌돌코인
+        </small>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <span>
+          ⭐
+        </span>
+
+        <b id="te">
+          -
+        </b>
+
+        <small>
+          총 EXP
+        </small>
+
       </div>
 
     </div>
+
 
     <div class="panel">
 
@@ -1297,15 +1678,17 @@ async function stats() {
       </h2>
 
       <p>
-        실제 합계는 보안 RPC를 통해 계산하도록
-        구성할 수 있습니다.
+        현재 공개된 users 데이터를 기준으로
+        합계를 계산합니다.
       </p>
 
     </div>
   `;
 
+
   const {
-    data
+    data,
+    error
   } =
     await sb
       .from("users")
@@ -1313,30 +1696,48 @@ async function stats() {
         "doldolcoin,exp"
       );
 
+
+  if (error) {
+
+    $("#uc").textContent = "—";
+    $("#tc").textContent = "—";
+    $("#te").textContent = "—";
+
+    console.error(
+      "통계 조회 오류:",
+      error
+    );
+
+    return;
+  }
+
+
   $("#uc").textContent =
     (
       data?.length || 0
     ).toLocaleString();
+
 
   $("#tc").textContent =
     (data || [])
       .reduce(
         (a, x) =>
           a +
-          Number(
-            x.doldolcoin || 0
+          safeNumber(
+            x.doldolcoin
           ),
         0
       )
       .toLocaleString();
+
 
   $("#te").textContent =
     (data || [])
       .reduce(
         (a, x) =>
           a +
-          Number(
-            x.exp || 0
+          safeNumber(
+            x.exp
           ),
         0
       )
@@ -1364,6 +1765,7 @@ async function logs() {
     </div>
   `;
 
+
   const {
     data,
     error
@@ -1379,76 +1781,110 @@ async function logs() {
       )
       .limit(300);
 
-  $("#logtable").innerHTML =
-    error
 
-      ? esc(error.message)
+  if (error) {
 
-      : `
-        <table>
-
-          <thead>
-
-            <tr>
-              <th>시간</th>
-              <th>관리자</th>
-              <th>작업</th>
-              <th>대상</th>
-              <th>상세</th>
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            ${
-              (data || [])
-                .map(
-                  l => `
-                    <tr>
-
-                      <td>
-                        ${new Date(
-                          l.created_at
-                        ).toLocaleString()}
-                      </td>
-
-                      <td>
-                        ${esc(
-                          l.admin_user_id
-                        )}
-                      </td>
-
-                      <td>
-                        ${esc(
-                          l.action
-                        )}
-                      </td>
-
-                      <td>
-                        ${esc(
-                          l.target_user_id
-                        )}
-                      </td>
-
-                      <td>
-                        ${esc(
-                          JSON.stringify(
-                            l.details || {}
-                          )
-                        )}
-                      </td>
-
-                    </tr>
-                  `
-                )
-                .join("")
-            }
-
-          </tbody>
-
-        </table>
+    $("#logtable").innerHTML =
+      `
+        <div class="empty">
+          ${esc(error.message)}
+        </div>
       `;
+
+    return;
+  }
+
+
+  $("#logtable").innerHTML = `
+    <table>
+
+      <thead>
+
+        <tr>
+
+          <th>
+            시간
+          </th>
+
+          <th>
+            관리자
+          </th>
+
+          <th>
+            작업
+          </th>
+
+          <th>
+            대상
+          </th>
+
+          <th>
+            상세
+          </th>
+
+        </tr>
+
+      </thead>
+
+
+      <tbody>
+
+        ${
+          (data || [])
+            .map(
+              l => `
+
+                <tr>
+
+                  <td>
+                    ${esc(
+                      formatDate(
+                        l.created_at
+                      )
+                    )}
+                  </td>
+
+
+                  <td>
+                    ${esc(
+                      l.admin_user_id
+                    )}
+                  </td>
+
+
+                  <td>
+                    ${esc(
+                      l.action
+                    )}
+                  </td>
+
+
+                  <td>
+                    ${esc(
+                      l.target_user_id
+                    )}
+                  </td>
+
+
+                  <td>
+                    ${esc(
+                      JSON.stringify(
+                        l.details || {}
+                      )
+                    )}
+                  </td>
+
+                </tr>
+
+              `
+            )
+            .join("")
+        }
+
+      </tbody>
+
+    </table>
+  `;
 }
 
 
@@ -1471,19 +1907,32 @@ async function security() {
       </p>
 
       <div class="warning">
+
         영구 정지와 관리자 권한 변경은
         반드시 서버측 RPC/RLS에서 검증하세요.
+
       </div>
 
       <button
         class="secondary"
-        onclick="users()"
+        id="securityUsers"
       >
         회원 관리로 이동
       </button>
 
     </div>
   `;
+
+
+  const button =
+    $("#securityUsers");
+
+  if (button) {
+
+    button.onclick =
+      () => render("users");
+
+  }
 }
 
 
@@ -1491,71 +1940,181 @@ async function security() {
    로그인 폼
 ===================================================== */
 
-$("#loginForm").onsubmit =
-  async e => {
+const loginForm =
+  $("#loginForm");
 
-    e.preventDefault();
 
-    $("#authStatus").textContent =
-      "관리자 계정 확인 중…";
+if (loginForm) {
 
-    try {
+  loginForm.onsubmit =
+    async e => {
 
-      await signIn(
-        $("#loginId").value.trim(),
-        $("#password").value
-      );
-
-    } catch (x) {
-
-      console.error(x);
+      e.preventDefault();
 
       $("#authStatus").textContent =
-        x.message ||
-        "로그인에 실패했습니다.";
+        "관리자 계정 확인 중…";
 
-      await sb.auth
-        .signOut()
-        .catch(() => {});
+      try {
 
-      clearVerified();
-    }
-  };
+        await signIn(
+          $("#loginId").value.trim(),
+          $("#password").value
+        );
+
+      } catch (x) {
+
+        console.error(x);
+
+        $("#authStatus").textContent =
+          x?.message ||
+          "로그인에 실패했습니다.";
+
+        await sb.auth
+          .signOut()
+          .catch(() => {});
+
+        clearVerified();
+      }
+    };
+}
 
 
 /* =====================================================
    로그아웃
 ===================================================== */
 
-$("#logout").onclick =
-  async () => {
+const logout =
+  $("#logout");
 
-    clearVerified();
 
-    await sb.auth.signOut();
+if (logout) {
 
-    location.reload();
-  };
+  logout.onclick =
+    async () => {
+
+      clearVerified();
+
+      await sb.auth.signOut();
+
+      location.reload();
+    };
+}
 
 
 /* =====================================================
    네비게이션
 ===================================================== */
 
-$("#nav").onclick =
-  e => {
+const nav =
+  $("#nav");
 
-    const b =
-      e.target.closest(
-        "button[data-page]"
-      );
 
-    if (b) {
-      render(
-        b.dataset.page
-      );
+if (nav) {
+
+  nav.onclick =
+    e => {
+
+      const b =
+        e.target.closest(
+          "button[data-page]"
+        );
+
+      if (b) {
+
+        render(
+          b.dataset.page
+        );
+
+      }
+    };
+}
+
+
+/* =====================================================
+   Supabase Auth 상태 변화 감지
+===================================================== */
+
+sb.auth.onAuthStateChange(
+  async (event, session) => {
+
+    console.log(
+      "Supabase Auth:",
+      event
+    );
+
+    /*
+     * SIGNED_OUT이면 관리자 화면을 닫는다.
+     */
+    if (event === "SIGNED_OUT") {
+
+      clearVerified();
+
+      $("#authGate")
+        ?.classList
+        .remove("hidden");
+
+      $("#app")
+        ?.classList
+        .add("hidden");
+
+      return;
     }
-  };
+
+
+    /*
+     * Magic Link 또는 다른 Auth 흐름으로
+     * 세션이 새로 만들어진 경우.
+     */
+    if (
+      event === "SIGNED_IN" ||
+      event === "TOKEN_REFRESHED"
+    ) {
+
+      if (!session?.user) {
+        return;
+      }
+
+      try {
+
+        await loadProfile(
+          session.user
+        );
+
+        setVerified(30);
+
+        showApp();
+
+        /*
+         * 현재 이미 다른 페이지를 보고 있다면
+         * 무조건 dashboard로 이동시키지 않는다.
+         */
+        if (
+          !state.page ||
+          state.page === "dashboard"
+        ) {
+          render("dashboard");
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Auth 상태 변경 처리 오류:",
+          error
+        );
+
+        await sb.auth
+          .signOut()
+          .catch(() => {});
+
+        clearVerified();
+
+        $("#authStatus").textContent =
+          error?.message ||
+          "관리자 인증에 실패했습니다.";
+      }
+    }
+  }
+);
 
 
 /* =====================================================
