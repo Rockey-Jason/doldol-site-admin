@@ -1,4 +1,0 @@
--- LEGACY
--- Magic Link 방식에서는 이 custom token table을 사용하지 않습니다.
--- 기존 admin_verification_tokens가 이미 있다면 삭제하지 않아도 되지만,
--- 새로운 관리자 인증 흐름에서는 사용하지 않습니다.
