@@ -1,8 +1,0 @@
-[functions.admin-login-email]
-verify_jwt = false
-
-[functions.admin-request-verification]
-verify_jwt = true
-
-[functions.admin-verify-email]
-verify_jwt = false
