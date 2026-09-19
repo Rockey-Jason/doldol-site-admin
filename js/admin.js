@@ -48,6 +48,25 @@ function esc(v) {
   );
 }
 
+function formatDate(value) {
+  if (!value) return "—";
+
+  const d = new Date(value);
+
+  if (Number.isNaN(d.getTime())) {
+    return "—";
+  }
+
+  return d.toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
+
 
 /* =====================================================
    관리자 인증 상태
@@ -787,7 +806,7 @@ async function loadUsers(q) {
                 ? (u.email_confirmed_at ? "인증됨" : "미인증")
                 : "Auth 없음"}
             </td>
-            <td>${u.last_sign_in_at ? esc(date(u.last_sign_in_at)) : "—"}</td>
+            <td>${esc(formatDate(u.last_sign_in_at))}</td>
             <td>
               <button class="mini" onclick='editUser(${JSON.stringify(u)})'>수정</button>
             </td>
