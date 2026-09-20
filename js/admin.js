@@ -635,7 +635,7 @@ async function dashboard() {
     await Promise.all([
       count("users"),
       count("rockey_news"),
-      count("dori_box_item"),
+      count("dori_box_items"),
       count("rockey_news_events")
     ]);
 
@@ -1619,7 +1619,7 @@ async function box() {
   $("#boxSearch").oninput = () => renderBoxList(window.__doriBoxRows || []);
 
   const { data, error } = await sb
-    .from("dori_box_item")
+    .from("dori_box_items")
     .select("id,item_name,item_type,rarity,probability,reward_coins,item_code,created_at,reward_exp")
     .order("id", { ascending: true });
 
