@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>돌이신문 & 돌이퀴즈 편집기</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="editor-page">
+<div id="editorAuth" class="editor-auth hidden">
+  <div class="auth-card">
+    <div class="logo">🐶</div>
+    <h1>관리자 인증 필요</h1>
+    <p id="editorAuthText">관리자 센터에서 먼저 로그인해 주세요.</p>
+    <button class="primary" id="backAdmin">관리자 센터로 돌아가기</button>
+  </div>
+</div>
+<div id="editorApp" class="editor-app hidden">
+  <header class="editor-topbar">
+    <button class="back-button" id="backList">← <span>신문 & 퀴즈</span></button>
+    <div class="editor-title"><span class="editor-mark">✦</span><div><b>돌이신문 & 돌이퀴즈</b><small>CONTENT EDITOR</small></div></div>
+    <div class="editor-user" id="editorUser">ADMIN</div>
+  </header>
+  <main class="editor-shell">
+    <div id="editorNotice" class="editor-notice hidden"></div>
+    <div id="issueView"></div>
+  </main>
+</div>
+<div id="editorToast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/editor.js?v=20260920-1"></script>
+</body>
+</html>
