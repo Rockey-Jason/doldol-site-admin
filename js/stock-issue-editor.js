@@ -126,7 +126,7 @@ async function requireAdmin() {
 async function loadStocks() {
   const { data, error } = await sb
     .from("dori_stocks")
-    .select("id,ticker,name,current_price,is_active")
+    .select("id,ticker,name,current_price,reference_price,is_active")
     .in("ticker", STOCKS.map(x => x.ticker))
     .eq("is_active", true);
 
@@ -141,6 +141,7 @@ async function loadStocks() {
     }
     stock.id = row.id;
     stock.current_price = row.current_price;
+    stock.reference_price = row.reference_price ?? row.current_price;
   }
 }
 
@@ -152,7 +153,7 @@ function render() {
           <button class="back-link" id="back">← 돌이 이슈 목록</button>
           <span class="eyebrow">DORI ISSUE / CREATE</span>
           <h1>📈 돌이 이슈 생성</h1>
-          <p>이슈 내용과 6개 종목의 증감률을 정하면, 생성과 동시에 돌돌증권에 반영됩니다.</p>
+          <p>이슈 내용과 6개 종목의 증감률을 정하면, 생성과 동시에 돌돌증권의 기준가(reference price)에 반영됩니다. 실제 체결가는 주문장에서 결정됩니다.</p>
         </div>
         <div class="editor-badge">MARKET EVENT</div>
       </header>
@@ -244,8 +245,8 @@ function renderStockInputs() {
       </div>
       <p>${esc(s.description)}</p>
       <div class="impact-price">
-        <span>현재가</span>
-        <strong>${Number(s.current_price).toLocaleString()} 돌돌</strong>
+        <span>실제 체결가 · 기준가</span>
+        <strong>${Number(s.current_price).toLocaleString()} · ${Number(s.reference_price).toLocaleString()} 돌돌</strong>
       </div>
       <label class="impact-field">
         <span>이슈 영향률</span>
@@ -277,10 +278,10 @@ function updatePreview(input) {
     return;
   }
 
-  const next = Math.max(1, Math.round(Number(stock.current_price) * (1 + pct / 100)));
+  const next = Math.max(1, Math.round(Number(stock.reference_price) * (1 + pct / 100)));
   const diff = next - Number(stock.current_price);
   const sign = diff > 0 ? "+" : "";
-  box.textContent = `예상 현재가 ${next.toLocaleString()} 돌돌 · ${sign}${diff.toLocaleString()}`;
+  box.textContent = `예상 기준가 ${next.toLocaleString()} 돌돌 · ${sign}${diff.toLocaleString()}`;
   box.className = `impact-preview ${diff > 0 ? "up" : diff < 0 ? "down" : "flat"}`;
 }
 
@@ -360,7 +361,7 @@ async function save(e) {
 
   const message = unusual.length
     ? `${unusual.map(x => STOCKS.find(s => s.ticker === x.ticker).name).join(", ")}의 영향률이 권장 범위를 넘어섰습니다.\n그래도 이슈를 생성할까요?`
-    : "이슈를 생성하면 6개 종목의 현재가가 즉시 변경되고 가격 이력에 기록됩니다.\n계속하시겠습니까?";
+    : "이슈를 생성하면 6개 종목의 기준가가 변경되고 이슈 영향 기록에 저장됩니다.\n실제 현재 체결가는 매수·매도 체결로만 움직입니다.\n계속하시겠습니까?";
 
   if (!confirm(message)) return;
 
