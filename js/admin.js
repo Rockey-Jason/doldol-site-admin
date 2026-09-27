@@ -1955,12 +1955,31 @@ async function aiTraining() {
     <div class="panel">
       <h2>학습 설정</h2>
       <p>기본값은 <b>10 epoch</b>입니다. 기존 best checkpoint에서 이어서 학습하며, 사이트의 돌이신문·돌돌증권 자료와 corpus/new/generated/learning 데이터를 함께 처리합니다.</p>
-      <div class="toolbar">
-        <label style="display:flex;align-items:center;gap:10px">
+      <div class="toolbar" style="display:flex;flex-wrap:wrap;gap:14px;align-items:end">
+        <label style="display:flex;flex-direction:column;gap:7px">
+          <span>학습 모드</span>
+          <select id="aiMode" style="min-width:180px">
+            <option value="test">🧪 테스트 · 3 epoch / 5 batch</option>
+            <option value="light">🌱 가벼움 · 10 epoch / 25 batch</option>
+            <option value="normal" selected>⚙️ 일반 · 20 epoch / 100 batch</option>
+            <option value="large">🚀 대규모 · 10 epoch / 250 batch</option>
+            <option value="custom">🛠️ 사용자 지정</option>
+          </select>
+        </label>
+        <label id="aiEpochWrap" style="display:flex;flex-direction:column;gap:7px">
           <span>Epoch</span>
-          <input id="aiEpochs" type="number" min="1" max="1000" value="10" style="max-width:140px">
+          <input id="aiEpochs" type="number" min="1" max="1000" value="20" style="max-width:140px">
+        </label>
+        <label id="aiBatchWrap" style="display:none;flex-direction:column;gap:7px">
+          <span>Batch / epoch</span>
+          <input id="aiMaxBatches" type="number" min="1" max="100000" value="100" style="max-width:160px">
+        </label>
+        <label id="aiBatchSizeWrap" style="display:none;flex-direction:column;gap:7px">
+          <span>Batch size</span>
+          <input id="aiBatchSize" type="number" min="1" max="64" value="1" style="max-width:140px">
         </label>
       </div>
+      <div id="aiModeInfo" class="status">일반 학습: 20 epoch × 100 batch = 최대 2,000회 업데이트</div>
       <div id="aiMessage" class="status">학습 상태를 확인하는 중…</div>
     </div>
 
@@ -2013,16 +2032,45 @@ async function aiTraining() {
     }
   };
 
+  const modePresets = {
+    test:   { epochs: 3,  batches: 5,   size: 1, label: "테스트: 시스템 확인용으로 최대 15회 업데이트" },
+    light:  { epochs: 10, batches: 25,  size: 1, label: "가벼움: 최대 250회 업데이트" },
+    normal: { epochs: 20, batches: 100, size: 1, label: "일반: 최대 2,000회 업데이트" },
+    large:  { epochs: 10, batches: 250, size: 1, label: "대규모: 최대 2,500회 업데이트 · Render 자원에 따라 오래 걸릴 수 있음" }
+  };
+  const syncMode = () => {
+    const mode = $("#aiMode").value;
+    const p = modePresets[mode];
+    const custom = mode === "custom";
+    $("#aiEpochWrap").style.display = "flex";
+    $("#aiBatchWrap").style.display = custom ? "flex" : "none";
+    $("#aiBatchSizeWrap").style.display = custom ? "flex" : "none";
+    if (p) {
+      $("#aiEpochs").value = p.epochs;
+      $("#aiMaxBatches").value = p.batches;
+      $("#aiBatchSize").value = p.size;
+      $("#aiModeInfo").textContent = p.label;
+    } else {
+      $("#aiModeInfo").textContent = "사용자 지정: Epoch × Batch / epoch × Batch size를 직접 정합니다.";
+    }
+  };
+  $("#aiMode").onchange = syncMode;
+  syncMode();
+
   $("#aiRefresh").onclick = refresh;
 
   $("#aiStart").onclick = async () => {
-    const epochs = Math.max(1, Math.min(1000, Number($("#aiEpochs").value || 10)));
+    const mode = $("#aiMode").value;
+    const preset = modePresets[mode];
+    const epochs = Math.max(1, Math.min(1000, Number($("#aiEpochs").value || preset?.epochs || 10)));
+    const maxBatches = Math.max(1, Math.min(100000, Number($("#aiMaxBatches").value || preset?.batches || 50)));
+    const batchSize = Math.max(1, Math.min(64, Number($("#aiBatchSize").value || preset?.size || 1)));
     $("#aiStart").disabled = true;
     $("#aiMessage").textContent = "AI 서버에 학습을 요청하는 중…";
     try {
       const result = await doriAiRequest("/training/start", {
         method: "POST",
-        body: JSON.stringify({ epochs })
+        body: JSON.stringify({ mode, epochs, max_batches: maxBatches, batch_size: batchSize })
       });
       renderStatus(result.status || {});
       toast(result.message || "학습을 시작했습니다.");
