@@ -456,7 +456,7 @@ async function boot() {
       showApp();
 
       const hashPage = location.hash.replace("#", "").trim();
-      const allowedPages = new Set(["dashboard","users","news","issues","quiz","box","events","stats","logs","security"]);
+      const allowedPages = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security"]);
       render(allowedPages.has(hashPage) ? hashPage : "dashboard");
 
       return;
@@ -545,6 +545,7 @@ function render(page) {
 
   const pages = {
     dashboard,
+    "ai-training": aiTraining,
     users,
     news,
     issues,
@@ -1879,6 +1880,168 @@ function renderEventList(rows) {
       window.location.href = `./event-editor.html?news_number=${issue}`;
     };
   });
+}
+
+
+/* =====================================================
+   돌이 AI 학습
+===================================================== */
+
+async function getDoriAiSession() {
+  const { data, error } = await sb.auth.getSession();
+  if (error) throw error;
+  if (!data?.session?.access_token) {
+    throw new Error("관리자 로그인 세션을 찾을 수 없습니다.");
+  }
+  return data.session.access_token;
+}
+
+async function doriAiRequest(path, options = {}) {
+  const token = await getDoriAiSession();
+  const response = await fetch(
+    String(cfg.DORI_AI_URL || "").replace(/\/$/, "") + path,
+    {
+      cache: "no-store",
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        ...(options.headers || {})
+      }
+    }
+  );
+
+  let body = null;
+  try { body = await response.json(); } catch (_) {}
+
+  if (!response.ok) {
+    throw new Error(body?.error || body?.message || `AI 서버 오류 (${response.status})`);
+  }
+  return body;
+}
+
+async function aiTraining() {
+  content.innerHTML = `
+    <div class="news-center-head">
+      <div>
+        <div class="eyebrow">DORI AI / STREAMING TRAINER</div>
+        <h1>🧠 돌이 AI 학습</h1>
+        <p>PowerShell을 열 필요 없이 관리자 화면에서 대용량 학습을 시작하고 진행 상태를 확인합니다.</p>
+      </div>
+      <div class="news-head-actions">
+        <button class="secondary" id="aiRefresh">↻ 상태 새로고침</button>
+        <button class="danger" id="aiStop">■ 학습 중지</button>
+        <button class="primary" id="aiStart">▶ 자동 학습 시작</button>
+      </div>
+    </div>
+
+    <div class="grid cards">
+      <div class="stat-card"><span>🧠</span><b id="aiPhase">대기</b><small>현재 상태</small></div>
+      <div class="stat-card"><span>📈</span><b id="aiProgress">0%</b><small>진행률</small></div>
+      <div class="stat-card"><span>📚</span><b id="aiExamples">0</b><small>수집 자료</small></div>
+      <div class="stat-card"><span>📉</span><b id="aiLoss">—</b><small>Validation loss</small></div>
+    </div>
+
+    <div class="panel">
+      <h2>학습 설정</h2>
+      <p>기본값은 <b>10 epoch</b>입니다. 기존 best checkpoint에서 이어서 학습하며, 사이트의 돌이신문·돌돌증권 자료와 corpus/new/generated/learning 데이터를 함께 처리합니다.</p>
+      <div class="toolbar">
+        <label style="display:flex;align-items:center;gap:10px">
+          <span>Epoch</span>
+          <input id="aiEpochs" type="number" min="1" max="1000" value="10" style="max-width:140px">
+        </label>
+      </div>
+      <div id="aiMessage" class="status">학습 상태를 확인하는 중…</div>
+    </div>
+
+    <div class="panel">
+      <h2>실시간 학습 로그</h2>
+      <pre id="aiLog" style="max-height:360px;overflow:auto;white-space:pre-wrap;margin:0;line-height:1.6">불러오는 중…</pre>
+    </div>
+  `;
+
+  let timer = null;
+
+  const renderStatus = (s) => {
+    $("#aiPhase").textContent =
+      s?.running ? "학습 중" :
+      s?.phase === "complete" ? "완료" :
+      s?.phase === "error" ? "오류" :
+      s?.phase === "stopped" ? "중지됨" : "대기";
+
+    $("#aiProgress").textContent = `${Number(s?.progress || 0)}%`;
+    $("#aiExamples").textContent = Number(s?.examples || 0).toLocaleString();
+    $("#aiLoss").textContent = s?.loss == null ? "—" : Number(s.loss).toFixed(4);
+    $("#aiMessage").textContent = s?.message || "학습 대기 중";
+
+    const log = $("#aiLog");
+    if (log) {
+      log.textContent = [
+        `상태: ${s?.phase || "idle"}`,
+        `진행률: ${Number(s?.progress || 0)}%`,
+        `epoch: ${s?.step || 0} / ${s?.steps || 0}`,
+        `loss: ${s?.loss == null ? "—" : Number(s.loss).toFixed(4)}`,
+        `메시지: ${s?.message || "—"}`,
+        s?.error ? `오류: ${s.error}` : ""
+      ].filter(Boolean).join("\n");
+    }
+
+    $("#aiStart").disabled = !!s?.running;
+    $("#aiStop").disabled = !s?.running;
+  };
+
+  const refresh = async () => {
+    try {
+      const s = await doriAiRequest("/training/status", { method: "GET", headers: {} });
+      renderStatus(s);
+      if (!s.running && timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    } catch (e) {
+      $("#aiMessage").textContent = e.message;
+    }
+  };
+
+  $("#aiRefresh").onclick = refresh;
+
+  $("#aiStart").onclick = async () => {
+    const epochs = Math.max(1, Math.min(1000, Number($("#aiEpochs").value || 10)));
+    $("#aiStart").disabled = true;
+    $("#aiMessage").textContent = "AI 서버에 학습을 요청하는 중…";
+    try {
+      const result = await doriAiRequest("/training/start", {
+        method: "POST",
+        body: JSON.stringify({ epochs })
+      });
+      renderStatus(result.status || {});
+      toast(result.message || "학습을 시작했습니다.");
+      if (timer) clearInterval(timer);
+      timer = setInterval(refresh, 2500);
+    } catch (e) {
+      $("#aiStart").disabled = false;
+      toast(e.message, false);
+      $("#aiMessage").textContent = e.message;
+    }
+  };
+
+  $("#aiStop").onclick = async () => {
+    try {
+      const result = await doriAiRequest("/training/stop", {
+        method: "POST",
+        body: "{}"
+      });
+      renderStatus(result.status || {});
+      toast("학습 중지 요청을 보냈습니다.");
+    } catch (e) {
+      toast(e.message, false);
+    }
+  };
+
+  await refresh();
+  if ($("#aiPhase")?.textContent === "학습 중") {
+    timer = setInterval(refresh, 2500);
+  }
 }
 
 /* =====================================================
