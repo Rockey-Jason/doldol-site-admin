@@ -21,7 +21,8 @@ const state = {
    */
   crudRows: [],
   crudTable: null,
-  crudCols: []
+  crudCols: [],
+  renderToken: 0
 };
 
 const VERIFIED_KEY = "dori_admin_verified_until";
@@ -513,6 +514,9 @@ function showApp() {
 ===================================================== */
 
 function render(page) {
+  // Every navigation/render invalidates async work from the previous page.
+  // This prevents delayed dashboard requests from touching removed DOM nodes.
+  state.renderToken += 1;
   state.page = page;
 
   state.selected.clear();
@@ -597,7 +601,11 @@ async function count(table) {
 ===================================================== */
 
 async function dashboard() {
-  content.innerHTML = `
+  const token = state.renderToken;
+  const root = $("#content");
+  if (!root) return;
+
+  root.innerHTML = `
     <div class="hero">
 
       <h1>
@@ -643,7 +651,14 @@ async function dashboard() {
       count("dori_stock_issues")
     ]);
 
-  $("#cards").innerHTML = [
+  // The dashboard may have been rendered again while the Supabase requests
+  // above were in flight. Abort this stale render before touching the DOM.
+  if (token !== state.renderToken || state.page !== "dashboard") return;
+
+  const cards = $("#cards");
+  if (!cards) return;
+
+  cards.innerHTML = [
 
     [
       "회원",
@@ -697,7 +712,8 @@ async function dashboard() {
     `)
     .join("");
 
-  await recent();
+  if (token !== state.renderToken || state.page !== "dashboard") return;
+  await recent(token);
 }
 
 
@@ -705,7 +721,7 @@ async function dashboard() {
    최근 활동
 ===================================================== */
 
-async function recent() {
+async function recent(renderToken = state.renderToken) {
   // dashboard() can be rendered again while this request is in flight
   // (e.g. INITIAL_SESSION + SIGNED_IN). Never write into a removed node.
   const target = $("#recent");
@@ -727,7 +743,7 @@ async function recent() {
       .limit(10);
 
   const currentTarget = $("#recent");
-  if (!currentTarget) return;
+  if (!currentTarget || renderToken !== state.renderToken || state.page !== "dashboard") return;
 
   if (error) {
     currentTarget.innerHTML = `
