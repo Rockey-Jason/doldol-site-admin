@@ -1989,11 +1989,11 @@ async function aiTraining() {
       log.textContent = [
         `상태: ${s?.phase || "idle"}`,
         `진행률: ${Number(s?.progress || 0)}%`,
-        `epoch: ${s?.step || 0} / ${s?.steps || 0}`,
+        `이번 학습 epoch: ${s?.step || 0} / ${s?.steps || 0}`,
+        `모델 누적 epoch: ${s?.model_epoch == null ? "—" : Number(s.model_epoch).toLocaleString()}`,
         `loss: ${s?.loss == null ? "—" : Number(s.loss).toFixed(4)}`,
         `메시지: ${s?.message || "—"}`,
-        s?.error ? `오류: ${s.error}` : ""
-      ].filter(Boolean).join("\n");
+        s?.error ? `오류: ${s.error}` : ""      ].filter(Boolean).join("\n");
     }
 
     $("#aiStart").disabled = !!s?.running;
