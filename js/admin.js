@@ -706,6 +706,11 @@ async function dashboard() {
 ===================================================== */
 
 async function recent() {
+  // dashboard() can be rendered again while this request is in flight
+  // (e.g. INITIAL_SESSION + SIGNED_IN). Never write into a removed node.
+  const target = $("#recent");
+  if (!target) return;
+
   const {
     data,
     error
@@ -721,41 +726,30 @@ async function recent() {
       )
       .limit(10);
 
+  const currentTarget = $("#recent");
+  if (!currentTarget) return;
+
   if (error) {
-    $("#recent").innerHTML = `
+    currentTarget.innerHTML = `
       <div class="empty">
         ${esc(error.message)}
       </div>
     `;
-
     return;
   }
 
-  $("#recent").innerHTML =
+  currentTarget.innerHTML =
     data?.length
-
       ? data
           .map(
             l => `
               <div class="row">
-
-                <span>
-                  ${esc(l.action)}
-                </span>
-
-                <small>
-                  ${esc(
-                    formatDate(
-                      l.created_at
-                    )
-                  )}
-                </small>
-
+                <span>${esc(l.action)}</span>
+                <small>${esc(formatDate(l.created_at))}</small>
               </div>
             `
           )
           .join("")
-
       : "기록이 없습니다.";
 }
 
