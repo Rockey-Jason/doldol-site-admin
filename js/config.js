@@ -9,5 +9,6 @@ window.DORI_ADMIN_CONFIG = {
   VERIFY_EMAIL_FUNCTION_URL:
     "https://scttowfhygcpdirrekqm.supabase.co/functions/v1/admin-request-verification",
   VERIFY_EMAIL_CONFIRM_URL:
-    "https://scttowfhygcpdirrekqm.supabase.co/functions/v1/admin-verify-email"
+    "https://scttowfhygcpdirrekqm.supabase.co/functions/v1/admin-verify-email",
+  DORI_AI_URL: "https://dori-ai-u3kf.onrender.com"
 };
