@@ -1954,7 +1954,7 @@ async function aiTraining() {
 
     <div class="panel">
       <h2>학습 설정</h2>
-      <p>기본값은 <b>10 epoch</b>입니다. 기존 best checkpoint에서 이어서 학습하며, 사이트의 돌이신문·돌돌증권 자료와 corpus/new/generated/learning 데이터를 함께 처리합니다.</p>
+      <p>기존 best/latest checkpoint에서 이어서 학습합니다. 사이트 자료와 <b>data/corpus의 대규모 언어 데이터</b>를 함께 처리하며, 모드에 따라 Epoch와 batch 수를 자동 조절합니다.</p>
       <div class="toolbar" style="display:flex;flex-wrap:wrap;gap:14px;align-items:end">
         <label style="display:flex;flex-direction:column;gap:7px">
           <span>학습 모드</span>
