@@ -162,49 +162,47 @@ async function currentUser() {
 
 async function loadProfile(user) {
   if (!user?.id) {
-    throw new Error(
-      "로그인 사용자를 확인할 수 없습니다."
-    );
+    throw new Error("로그인 사용자를 확인할 수 없습니다.");
   }
 
-  const {
-    data,
-    error
-  } = await sb
+  // maybeSingle() avoids PostgREST 406 when the profile row is missing.
+  // A missing row is handled explicitly below; it is not treated as an admin.
+  const { data, error } = await sb
     .from("users")
-    .select("*")
-    .eq(
-      "user_id",
-      String(user.id)
-    )
-    .single();
+    .select("user_id, login_id, name, is_admin, user_level")
+    .eq("user_id", String(user.id))
+    .maybeSingle();
 
   if (error) {
-    throw error;
+    console.error("관리자 프로필 조회 실패:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint
+    });
+    throw new Error(
+      error.code === "401" || /JWT|token|auth/i.test(error.message || "")
+        ? "Supabase 인증이 만료되었거나 유효하지 않습니다. 다시 로그인해 주세요."
+        : `관리자 프로필을 조회하지 못했습니다: ${error.message || "알 수 없는 오류"}`
+    );
   }
 
-  if (
-    data.is_admin !== true ||
-    Number(data.user_level || 0) < 10
-  ) {
+  if (!data) {
     throw new Error(
-      "관리자 권한이 없습니다."
+      "users 테이블에서 이 로그인 계정의 user_id 프로필을 찾지 못했습니다. Supabase Auth 사용자 UUID와 users.user_id 값이 정확히 같은지 확인해 주세요."
     );
+  }
+
+  if (data.is_admin !== true || Number(data.user_level || 0) < 10) {
+    throw new Error("관리자 권한이 없습니다. is_admin=true 및 user_level=10 이상인지 확인해 주세요.");
   }
 
   state.user = user;
   state.profile = data;
 
   const adminName = $("#adminName");
-
   if (adminName) {
-    adminName.textContent =
-      ` · ${
-        data.name ||
-        data.login_id ||
-        user.email ||
-        ""
-      }`;
+    adminName.textContent = ` · ${data.name || data.login_id || user.email || ""}`;
   }
 }
 
@@ -2604,15 +2602,15 @@ sb.auth.onAuthStateChange(
           error
         );
 
-        await sb.auth
-          .signOut()
-          .catch(() => {});
-
+        // Do not sign out from inside the auth callback: doing so emits
+        // SIGNED_OUT and can create a cascading auth-event loop.
         clearVerified();
-
-        $("#authStatus").textContent =
-          error?.message ||
-          "관리자 인증에 실패했습니다.";
+        $("#authGate")?.classList.remove("hidden");
+        $("#app")?.classList.add("hidden");
+        const status = $("#authStatus");
+        if (status) {
+          status.textContent = error?.message || "관리자 인증에 실패했습니다.";
+        }
       }
     }
   }
