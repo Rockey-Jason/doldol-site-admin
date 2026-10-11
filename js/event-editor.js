@@ -61,7 +61,7 @@ function render(d){
        ${["A","B","C","D"].map(k=>`<option value="${k}" ${loadedAnswer===k?"selected":""}>${k}번 선택지가 정답</option>`).join("")}
       </select>
      </label>
-     <div class="issue-live-note"><span>QUIZ RULE</span><b>도전 기회는 5회로 고정</b><small>정답 확인은 서버에서 처리하고 정답 키는 일반 사용자에게 공개하지 않습니다.</small></div>
+     <div class="issue-live-note"><span>QUIZ RULE</span><b>도전 기회는 2회로 고정</b><small>정답 확인은 서버에서 처리하고 정답 키는 일반 사용자에게 공개하지 않습니다.</small></div>
      <div class="editor-actions"><button type="button" class="secondary" id="cancel">취소</button><button type="submit" class="primary" id="save">💾 ${c?"이벤트 생성 및 설정 저장":"변경사항 저장"}</button></div>
     </form>
    </section>
