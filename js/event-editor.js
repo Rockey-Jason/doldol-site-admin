@@ -47,8 +47,8 @@ function render(d){
      </label>
      <div id="fixedRewardField"><label>정답 보상 돌돌코인<input name="reward_coins" type="number" min="0" step="1" value="${Number(d.reward_coins||0)}"><small class="form-help">정답을 맞히면 이 금액을 한 번 지급합니다.</small></label></div>
      <div id="multiplierFields" class="form-grid two">
-      <label>배수 (원하는 양수 입력)<input name="reward_multiplier" id="rewardMultiplier" type="number" min="0.000001" step="any" value="${esc(d.reward_multiplier||2)}" required><small class="form-help">2, 3.5, 7.25, 100 등 직접 입력할 수 있습니다. 고정된 2배/5배 선택지만 사용하지 않습니다.</small></label>
-      <label>효과 지속 시간 (분)<input name="reward_duration_minutes" type="number" min="1" max="525600" step="1" value="${Number(d.reward_duration_minutes||60)}" required><small class="form-help">수급량 배수는 이 시간 동안 적용됩니다. 보유 코인 기준 지급은 즉시 한 번 지급되며 지속 시간은 적용되지 않습니다.</small></label>
+      <label>배수 (원하는 양수 입력)<input name="reward_multiplier" id="rewardMultiplier" type="number" min="0.000001" step="any" value="${esc(d.reward_multiplier||2)}" required><small class="form-help">2, 3.5, 7.25, 100 등 직접 입력할 수 있습니다.</small></label>
+      <label id="durationField">효과 지속 시간 (분)<input name="reward_duration_minutes" type="number" min="1" max="525600" step="1" value="${Number(d.reward_duration_minutes||60)}" required><small class="form-help">기간제 수급량 배수에만 적용됩니다.</small></label>
      </div>
      <div class="issue-live-note" id="rewardHelp"><span>REWARD PREVIEW</span><b>보상 안내</b><small>선택한 보상 방식에 따라 안내가 바뀝니다.</small></div>
      <div class="editor-section-head" style="margin-top:22px"><div><span class="eyebrow">SPECIAL QUIZ</span><h2>🧩 특별 퀴즈</h2></div></div>
@@ -76,10 +76,12 @@ function updateRewardFields(){
  const type=$("#rewardType").value;
  $("#fixedRewardField").style.display=type==="coin"?"block":"none";
  $("#multiplierFields").style.display=type==="coin"?"none":"grid";
+ $("#durationField").style.display=type==="coin_multiplier"?"block":"none";
+ $("[name='reward_duration_minutes']").required=type==="coin_multiplier";
  const help=$("#rewardHelp");
  if(type==="coin")help.innerHTML="<span>REWARD PREVIEW</span><b>고정 코인 지급</b><small>정답을 맞히면 설정한 코인을 한 번 지급합니다. 이미 활성화된 수급 배수가 있으면 일반 보상 정책에 따라 적용될 수 있습니다.</small>";
  else if(type==="coin_multiplier")help.innerHTML="<span>REWARD PREVIEW</span><b>기간제 수급량 배수</b><small>설정한 배수가 입력한 시간 동안 돌돌코인 보상 경로에 적용됩니다. 배수는 임의의 양수로 설정할 수 있습니다.</small>";
- else help.innerHTML="<span>REWARD PREVIEW</span><b>현재 보유 코인 × 배수만큼 추가 지급</b><small>퀴즈 정답을 맞히는 순간의 보유 코인을 기준으로 계산합니다. 예: 20,000코인 보유 중 3배면 60,000코인을 추가 지급합니다.</small>";
+ else help.innerHTML="<span>REWARD PREVIEW</span><b>현재 보유 코인 × 배수만큼 즉시 추가 지급</b><small>기간이 없는 일회성 지급입니다. 정답을 맞히는 순간의 보유 코인을 기준으로 계산합니다. 예: 20,000코인 보유 중 3배면 60,000코인을 추가 지급합니다.</small>";
 }
 async function save(e){
  e.preventDefault();const f=e.currentTarget;const n=Number(f.news_number.value);
@@ -88,7 +90,7 @@ async function save(e){
  const options=["A","B","C","D"].map(k=>({value:k,label:f["option_"+k].value.trim()}));
  if(!Number.isInteger(n)||n<1||!f.event_name.value.trim()||!Number.isSafeInteger(rewardCoins)||rewardCoins<0){toast("이벤트 번호, 이름, 코인 보상을 확인해 주세요.",false);return}
  if(type!=="coin"&&(!Number.isFinite(multiplier)||multiplier<=0||multiplier>1e12)){toast("배수는 0보다 크고 1조 이하인 숫자로 입력해 주세요.",false);return}
- if(type!=="coin"&&(!Number.isInteger(duration)||duration<1||duration>525600)){toast("지속 시간은 1~525,600분으로 입력해 주세요.",false);return}
+ if(type==="coin_multiplier"&&(!Number.isInteger(duration)||duration<1||duration>525600)){toast("기간제 배수의 지속 시간은 1~525,600분으로 입력해 주세요.",false);return}
  if(!f.quiz_question.value.trim()||f.quiz_question.value.trim().length<5||options.some(o=>!o.label)){toast("퀴즈 문제와 A~D 선택지를 모두 입력해 주세요.",false);return}
  const b=$("#save");b.disabled=true;b.textContent="저장 중…";
  try{
@@ -100,7 +102,7 @@ async function save(e){
   const {data:configured,error:configError}=await sb.rpc("admin_configure_news_event",{
    p_event_id:event.id,p_event_type:type,p_reward_coins:Math.floor(rewardCoins),
    p_reward_multiplier:type==="coin"?1:multiplier,
-   p_duration_minutes:type==="coin"?Math.max(1,Math.floor(duration||60)):Math.floor(duration),
+   p_duration_minutes:type==="coin_multiplier"?Math.floor(duration):1,
    p_question:f.quiz_question.value.trim(),p_options:options,p_answer:f.quiz_answer.value
   });
   if(configError)throw configError;
