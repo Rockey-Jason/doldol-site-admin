@@ -97,3 +97,17 @@ html{background:#020817;overflow-x:hidden}body{overflow-x:hidden;-webkit-tap-hig
 .issue-sticky-actions{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-top:2px}.issue-submit-summary{min-width:0}.issue-submit-summary b,.issue-submit-summary small{display:block}.issue-submit-summary b{font-size:13px}.issue-submit-summary small{color:#6d7e9b;font-size:11px;margin-top:4px}
 @media(max-width:1000px){.issue-overview{grid-template-columns:1fr}.stock-impact-grid,.range-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.issue-list-row{grid-template-columns:70px 1fr}.issue-published{display:none}.stock-impact-grid,.range-grid{grid-template-columns:1fr}.range-guide-head,.issue-sticky-actions{flex-direction:column;align-items:stretch}.issue-sticky-actions .editor-actions{justify-content:stretch}.issue-sticky-actions button{flex:1}.form-grid{grid-template-columns:1fr}}
+
+
+/* EVENT EDITOR: reward selector */
+.professional-form select{
+  display:block;width:100%;max-width:100%;margin-top:7px;padding:14px 15px;
+  border:1px solid rgba(255,255,255,.12);border-radius:14px;
+  background:#030a16;color:#edf4ff;outline:none;font:inherit;
+  transition:border-color .22s,box-shadow .22s;
+}
+.professional-form select:focus{border-color:#4e94ff;box-shadow:0 0 0 4px #2e80ff18}
+.professional-form select option{background:#071326;color:#edf4ff}
+#rewardHelp{margin:8px 0 18px}
+#rewardHelp b{display:block;margin:5px 0;color:#d8e7ff}
+#rewardHelp small{display:block;color:#91a6c6;line-height:1.65}
