@@ -1846,7 +1846,7 @@ async function events() {
 
   const { data, error } = await sb
     .from("rockey_news_events")
-    .select("news_number,enabled,event_name,description,reward_coins")
+    .select("news_number,enabled,event_name,description,reward_coins,event_type,reward_multiplier,reward_duration_minutes")
     .order("news_number", { ascending: true });
 
   if (error) {
@@ -1860,7 +1860,7 @@ async function events() {
 
 function renderEventList(rows) {
   const q = String($("#eventSearch")?.value || "").trim().toLowerCase();
-  const filtered = rows.filter(r => [r.news_number, r.event_name, r.description, r.reward_coins].join(" ").toLowerCase().includes(q));
+  const filtered = rows.filter(r => [r.news_number, r.event_name, r.description, r.reward_coins, r.event_type, r.reward_multiplier, r.reward_duration_minutes].join(" ").toLowerCase().includes(q));
   $("#eventResultCount").textContent = `${filtered.length}개 표시`;
 
   if (!filtered.length) {
@@ -1878,7 +1878,7 @@ function renderEventList(rows) {
         <span class="event-status ${r.enabled ? "on" : "off"}">${r.enabled ? "● 활성" : "○ 비활성"}</span>
         <div><b>${esc(r.event_name || "이름 없음")}</b></div>
         <p>${esc(r.description || "설명이 없습니다.")}</p>
-        <span class="reward">🪙 ${Number(r.reward_coins || 0).toLocaleString()}</span>
+        <span class="reward">${r.event_type === "coin_multiplier" ? `⚡ ${Number(r.reward_multiplier || 1).toLocaleString()}배 · ${Number(r.reward_duration_minutes || 60)}분` : r.event_type === "balance_multiplier" ? `💎 보유 코인 × ${Number(r.reward_multiplier || 1).toLocaleString()}` : `🪙 ${Number(r.reward_coins || 0).toLocaleString()}`}</span>
         <button class="mini primary" type="button" data-event-edit="${esc(r.news_number)}">수정</button>
       </div>
     `).join("")}
