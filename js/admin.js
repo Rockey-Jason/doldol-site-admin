@@ -109,9 +109,8 @@ function safeNumber(value, fallback = 0) {
 ===================================================== */
 
 function isVerified() {
-  return Number(
-    localStorage.getItem(VERIFIED_KEY) || 0
-  ) > Date.now();
+  // Local storage is only a UI hint; the database is the authority.
+  return false;
 }
 
 
@@ -323,6 +322,32 @@ async function requestEmailVerification() {
   return body;
 }
 
+async function confirmEmailVerification(token, accessToken) {
+  if (!cfg.VERIFY_EMAIL_CONFIRM_URL) {
+    throw new Error("VERIFY_EMAIL_CONFIRM_URL을 설정하세요.");
+  }
+  const response = await fetch(cfg.VERIFY_EMAIL_CONFIRM_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`,
+      "apikey": cfg.SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify({ token })
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || body?.ok !== true) {
+    throw new Error(body?.message || "이메일 인증을 완료하지 못했습니다.");
+  }
+  return body;
+}
+
+async function serverVerifiedSession() {
+  const { data, error } = await sb.rpc("admin_is_authorized");
+  if (error) throw error;
+  return data === true;
+}
+
 
 /* =====================================================
    관리자 로그인
@@ -449,15 +474,20 @@ async function boot() {
 
     if (user) {
       await loadProfile(user);
-
-      setVerified(30);
-
-      showApp();
-
-      const hashPage = location.hash.replace("#", "").trim();
-      const allowedPages = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security"]);
-      render(allowedPages.has(hashPage) ? hashPage : "dashboard");
-
+      const verified = await serverVerifiedSession();
+      if (verified) {
+        setVerified(30);
+        showApp();
+        const hashPage = location.hash.replace("#", "").trim();
+        const allowedPages = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security"]);
+        render(allowedPages.has(hashPage) ? hashPage : "dashboard");
+      } else {
+        clearVerified();
+        $("#authGate")?.classList.remove("hidden");
+        $("#app")?.classList.add("hidden");
+        const status = $("#authStatus");
+        if (status) status.textContent = "이메일 인증이 필요합니다. 로그인 화면에서 인증 메일을 다시 요청해 주세요.";
+      }
       return;
     }
 
@@ -2569,31 +2599,30 @@ sb.auth.onAuthStateChange(
       }
 
       try {
+        await loadProfile(session.user);
 
-        await loadProfile(
-          session.user
-        );
+        const params = new URLSearchParams(location.search);
+        const verifyToken = params.get("admin_verify_token");
+        if (verifyToken) {
+          await confirmEmailVerification(verifyToken, session.access_token);
+          params.delete("admin_verify_token");
+          const nextQuery = params.toString();
+          history.replaceState(null, "", location.pathname + (nextQuery ? "?" + nextQuery : "") + location.hash);
+        }
+
+        const verified = await serverVerifiedSession();
+        if (!verified) {
+          clearVerified();
+          $("#authGate")?.classList.remove("hidden");
+          $("#app")?.classList.add("hidden");
+          const status = $("#authStatus");
+          if (status) status.textContent = "이메일 인증이 필요합니다. 인증 메일의 링크를 열어 주세요.";
+          return;
+        }
 
         setVerified(30);
-
         showApp();
-
-
-        /*
-         * 현재 이미 다른 페이지를 보고 있다면
-         * 무조건 dashboard로 이동시키지 않는다.
-         */
-
-        if (
-          !state.page ||
-          state.page === "dashboard"
-        ) {
-
-          render(
-            "dashboard"
-          );
-
-        }
+        if (!state.page || state.page === "dashboard") render("dashboard");
 
       } catch (error) {
 
