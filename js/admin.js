@@ -342,10 +342,23 @@ async function confirmEmailVerification(token, accessToken) {
   return body;
 }
 
-async function serverVerifiedSession() {
-  const { data, error } = await sb.rpc("admin_is_authorized");
-  if (error) throw error;
-  return data === true;
+async function serverVerifiedSession(accessToken) {
+  if (!accessToken) return false;
+  const response = await fetch(
+    cfg.SUPABASE_URL.replace(/\/$/, "") + "/rest/v1/rpc/admin_is_authorized",
+    {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": cfg.SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + accessToken
+      },
+      body: "{}"
+    }
+  );
+  if (!response.ok) return false;
+  return (await response.json().catch(() => false)) === true;
 }
 
 
@@ -464,7 +477,7 @@ async function boot() {
 
     if (user) {
       await loadProfile(user);
-      const verified = await serverVerifiedSession();
+      const verified = await serverVerifiedSession(session.access_token);
       if (verified) {
         setVerified(30);
         showApp();
