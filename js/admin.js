@@ -380,41 +380,31 @@ async function signIn(
 
 
   /* ---------------------------------------------------
-     1. login_id 확인
+     서버 측 로그인: 이메일 주소는 브라우저에 반환하지 않는다.
+     서버가 login_id + 비밀번호를 검증하고 세션 토큰만 반환한다.
   --------------------------------------------------- */
 
-  $("#authStatus").textContent =
-    "관리자 계정을 확인하는 중…";
-
-  const email =
-    await resolveEmail(id);
-
-
-  /* ---------------------------------------------------
-     2. Supabase 비밀번호 로그인
-  --------------------------------------------------- */
-
-  $("#authStatus").textContent =
-    "비밀번호를 확인하는 중…";
-
-  const {
-    data,
-    error
-  } =
-    await sb.auth.signInWithPassword({
-      email,
-      password: pw
-    });
-
-  if (error) {
-    throw error;
+  $("#authStatus").textContent = "로그인 정보를 안전하게 확인하는 중…";
+  const response = await fetch(cfg.ADMIN_LOGIN_LOOKUP_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": cfg.SUPABASE_ANON_KEY
+    },
+    cache: "no-store",
+    body: JSON.stringify({ login_id: id, password: pw })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || result?.ok !== true || !result?.access_token || !result?.refresh_token) {
+    throw new Error(result?.message || "아이디 또는 비밀번호를 확인해 주세요.");
   }
 
-  if (!data?.user) {
-    throw new Error(
-      "로그인 사용자를 확인할 수 없습니다."
-    );
-  }
+  const { data, error } = await sb.auth.setSession({
+    access_token: result.access_token,
+    refresh_token: result.refresh_token
+  });
+  if (error) throw error;
+  if (!data?.user) throw new Error("로그인 사용자를 확인할 수 없습니다.");
 
 
   /* ---------------------------------------------------
