@@ -2613,7 +2613,7 @@ sb.auth.onAuthStateChange(
           history.replaceState(null, "", location.pathname + (nextQuery ? "?" + nextQuery : "") + location.hash);
         }
 
-        const verified = await serverVerifiedSession();
+        const verified = await serverVerifiedSession(session.access_token);
         if (!verified) {
           clearVerified();
           $("#authGate")?.classList.remove("hidden");
