@@ -111,3 +111,10 @@ html{background:#020817;overflow-x:hidden}body{overflow-x:hidden;-webkit-tap-hig
 #rewardHelp{margin:8px 0 18px}
 #rewardHelp b{display:block;margin:5px 0;color:#d8e7ff}
 #rewardHelp small{display:block;color:#91a6c6;line-height:1.65}
+
+/* Consistent shortcut back to the public Dori main site */
+.main-site-link{display:flex;align-items:center;gap:10px;margin:0 4px 18px;padding:11px 10px;border:1px solid rgba(255,211,74,.24);border-radius:14px;background:linear-gradient(110deg,rgba(255,211,74,.12),rgba(255,255,255,.025));color:#f7e6a0;text-decoration:none;transition:transform .22s ease,border-color .22s ease,background .22s ease,box-shadow .22s ease}
+.main-site-link:hover{transform:translateY(-1px);border-color:rgba(255,211,74,.5);background:linear-gradient(110deg,rgba(255,211,74,.18),rgba(255,255,255,.045));box-shadow:0 8px 22px rgba(255,190,40,.08)}
+.main-site-d{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border:1px solid rgba(255,224,122,.65);border-radius:50%;background:#fff;color:#11152a;font-family:Arial,sans-serif;font-size:20px;font-weight:700;box-shadow:0 0 0 3px rgba(255,211,74,.09)}
+.main-site-copy{display:flex;flex-direction:column;gap:3px;min-width:0}.main-site-copy strong{font-size:14px;font-weight:400}.main-site-copy small{font-size:11px;color:#b8b7a5}.main-site-arrow{margin-left:auto;font-size:17px;color:#ffe89a}
+@media(max-width:760px){.main-site-link{gap:8px;margin-bottom:12px;padding:9px 8px}.main-site-copy small{font-size:10px}}
