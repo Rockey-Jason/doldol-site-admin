@@ -153,7 +153,7 @@ function render() {
           <button class="back-link" id="back">← 돌이 이슈 목록</button>
           <span class="eyebrow">DORI ISSUE / CREATE</span>
           <h1>📈 돌이 이슈 생성</h1>
-          <p>이슈 내용과 6개 종목의 증감률을 정하면, 생성과 동시에 돌돌증권의 기준가(reference price)에 반영됩니다. 실제 체결가는 주문장에서 결정됩니다.</p>
+          <p>이슈를 발행하면 입력한 증감률이 6개 종목의 실제 현재가와 기준가에 즉시 반영됩니다. 바뀐 현재가는 가격 이력과 돌돌증권 그래프에도 기록됩니다.</p>
         </div>
         <div class="editor-badge">MARKET EVENT</div>
       </header>
@@ -174,7 +174,7 @@ function render() {
             <div class="issue-live-note">
               <span>발행 방식</span>
               <b>즉시 발행 · 즉시 주가 반영</b>
-              <small>6개 종목의 영향률은 하나의 거래로 묶여 저장됩니다.</small>
+              <small>6개 종목의 현재가·기준가·가격 이력이 하나의 원자적 처리로 함께 저장됩니다.</small>
             </div>
           </div>
           <label>이슈 본문
@@ -245,7 +245,7 @@ function renderStockInputs() {
       </div>
       <p>${esc(s.description)}</p>
       <div class="impact-price">
-        <span>실제 체결가 · 기준가</span>
+        <span>현재가 · 기준가</span>
         <strong>${Number(s.current_price).toLocaleString()} · ${Number(s.reference_price).toLocaleString()} 돌돌</strong>
       </div>
       <label class="impact-field">
@@ -268,7 +268,10 @@ function renderStockInputs() {
 
 function updatePreview(input) {
   const stock = STOCKS.find(s => s.ticker === input.dataset.ticker);
-  const pct = Number(input.value);
+  if (!stock) return;
+
+  const raw = String(input.value ?? "").trim();
+  const pct = raw === "" ? NaN : Number(raw);
   const box = document.querySelector(`[data-preview="${CSS.escape(stock.ticker)}"]`);
   if (!box) return;
 
@@ -278,10 +281,13 @@ function updatePreview(input) {
     return;
   }
 
-  const next = Math.max(1, Math.round(Number(stock.reference_price) * (1 + pct / 100)));
-  const diff = next - Number(stock.current_price);
+  const current = Math.max(1, Number(stock.current_price) || 1);
+  const reference = Math.max(1, Number(stock.reference_price) || current);
+  const nextCurrent = Math.max(1, Math.round(current * (1 + pct / 100)));
+  const nextReference = Math.max(1, Math.round(reference * (1 + pct / 100)));
+  const diff = nextCurrent - current;
   const sign = diff > 0 ? "+" : "";
-  box.textContent = `예상 기준가 ${next.toLocaleString()} 돌돌 · ${sign}${diff.toLocaleString()}`;
+  box.textContent = `예상 현재가 ${nextCurrent.toLocaleString()} · 기준가 ${nextReference.toLocaleString()} · 현재가 변동 ${sign}${diff.toLocaleString()} 돌돌`;
   box.className = `impact-preview ${diff > 0 ? "up" : diff < 0 ? "down" : "flat"}`;
 }
 
@@ -359,9 +365,10 @@ async function save(e) {
     return n > normalMax;
   });
 
+  const effectSummary = "이슈를 발행하면 6개 종목의 실제 현재가와 기준가가 즉시 변경되고, 가격 이력·그래프·이슈 영향 내역에 기록됩니다. 변경은 한 번에 처리됩니다.";
   const message = unusual.length
-    ? `${unusual.map(x => STOCKS.find(s => s.ticker === x.ticker).name).join(", ")}의 영향률이 권장 범위를 넘어섰습니다.\n그래도 이슈를 생성할까요?`
-    : "이슈를 생성하면 6개 종목의 기준가가 변경되고 이슈 영향 기록에 저장됩니다.\n실제 현재 체결가는 매수·매도 체결로만 움직입니다.\n계속하시겠습니까?";
+    ? `${unusual.map(x => STOCKS.find(s => s.ticker === x.ticker).name).join(", ")}의 영향률이 권장 범위를 넘어섰습니다.\n\n${effectSummary}\n계속하시겠습니까?`
+    : `${effectSummary}\n계속하시겠습니까?`;
 
   if (!confirm(message)) return;
 
