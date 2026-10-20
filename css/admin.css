@@ -112,26 +112,94 @@ html{background:#020817;overflow-x:hidden}body{overflow-x:hidden;-webkit-tap-hig
 #rewardHelp b{display:block;margin:5px 0;color:#d8e7ff}
 #rewardHelp small{display:block;color:#91a6c6;line-height:1.65}
 
-/* Consistent shortcut back to the public Dori main site */
-.main-site-link{display:flex;align-items:center;gap:10px;margin:0 4px 18px;padding:11px 10px;border:1px solid rgba(255,211,74,.24);border-radius:14px;background:linear-gradient(110deg,rgba(255,211,74,.12),rgba(255,255,255,.025));color:#f7e6a0;text-decoration:none;transition:transform .22s ease,border-color .22s ease,background .22s ease,box-shadow .22s ease}
-.main-site-link:hover{transform:translateY(-1px);border-color:rgba(255,211,74,.5);background:linear-gradient(110deg,rgba(255,211,74,.18),rgba(255,255,255,.045));box-shadow:0 8px 22px rgba(255,190,40,.08)}
-.main-site-d{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border:1px solid rgba(255,224,122,.65);border-radius:50%;background:#fff;color:#11152a;font-family:Arial,sans-serif;font-size:20px;font-weight:700;box-shadow:0 0 0 3px rgba(255,211,74,.09)}
-.main-site-copy{display:flex;flex-direction:column;gap:3px;min-width:0}.main-site-copy strong{font-size:14px;font-weight:400}.main-site-copy small{font-size:11px;color:#b8b7a5}.main-site-arrow{margin-left:auto;font-size:17px;color:#ffe89a}
-@media(max-width:760px){.main-site-link{gap:8px;margin-bottom:12px;padding:9px 8px}.main-site-copy small{font-size:10px}}
-
-
-/* PREMIUM MAIN-SITE NAVIGATION — responsive, polished, accessible */
-.main-site-link{position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:42px minmax(0,1fr) 26px;align-items:center;gap:12px;margin:0 4px 20px;padding:13px 12px;min-height:76px;border:1px solid rgba(255,218,111,.24);border-radius:17px;background:linear-gradient(125deg,rgba(255,213,86,.105),rgba(21,42,78,.56) 52%,rgba(8,17,37,.92));color:#f7e8b1;text-decoration:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 8px 24px rgba(0,0,0,.12);transition:transform .28s cubic-bezier(.2,.75,.25,1),border-color .28s ease,background .28s ease,box-shadow .28s ease}
-.main-site-link:before{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;opacity:0;background:linear-gradient(112deg,transparent 10%,rgba(255,235,167,.11) 42%,transparent 72%);transform:translateX(-45%);transition:opacity .25s ease,transform .55s cubic-bezier(.2,.75,.25,1)}
-.main-site-link:after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,220,119,.55),transparent);opacity:.55}
-.main-site-link:hover{transform:translateY(-2px);border-color:rgba(255,220,119,.55);background:linear-gradient(125deg,rgba(255,213,86,.16),rgba(26,53,95,.72) 52%,rgba(8,17,37,.96));box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 30px rgba(0,0,0,.24),0 0 24px rgba(255,205,76,.055)}
-.main-site-link:hover:before{opacity:1;transform:translateX(45%)}.main-site-link:active{transform:translateY(0) scale(.99)}.main-site-link:focus-visible{outline:2px solid #ffe18a;outline-offset:3px}
-.main-site-d-wrap{position:relative;display:grid;place-items:center;width:40px;height:40px}
-.main-site-d{position:relative;z-index:1;display:grid;place-items:center;width:34px;height:34px;border:1px solid rgba(255,225,143,.9);border-radius:50%;background:linear-gradient(145deg,#fff,#e9edf7);color:#10182a;font-family:Arial,sans-serif;font-size:20px;font-weight:700;line-height:1;box-shadow:0 2px 10px rgba(0,0,0,.25),0 0 0 3px rgba(255,211,74,.075);transition:transform .28s ease,box-shadow .28s ease}
-.main-site-orbit{position:absolute;inset:0;border:1px solid rgba(255,220,119,.23);border-radius:50%;transform:scale(.82);transition:transform .3s ease,border-color .3s ease}
-.main-site-link:hover .main-site-d{transform:rotate(-5deg) scale(1.045);box-shadow:0 3px 14px rgba(0,0,0,.28),0 0 0 4px rgba(255,211,74,.11)}.main-site-link:hover .main-site-orbit{transform:scale(1);border-color:rgba(255,220,119,.6)}
-.main-site-copy{display:flex;flex-direction:column;gap:3px;min-width:0}.main-site-eyebrow{font-family:Arial,sans-serif;font-size:8px;letter-spacing:1.7px;font-weight:700;color:#c5a958;line-height:1.2}.main-site-copy strong{font-size:14px;font-weight:400;color:#fff0bd;line-height:1.35;white-space:nowrap}.main-site-copy small{font-size:10px;font-weight:400;color:#9eabc4;line-height:1.35;white-space:nowrap}
-.main-site-arrow{display:grid;place-items:center;width:25px;height:25px;border:1px solid rgba(255,225,143,.16);border-radius:9px;color:#ffe18a;font-size:16px;line-height:1;transition:transform .28s ease,background .28s ease,border-color .28s ease}.main-site-link:hover .main-site-arrow{transform:translate(2px,-2px);background:rgba(255,220,119,.09);border-color:rgba(255,225,143,.4)}
-@media(max-width:900px){.main-site-link{display:flex;justify-content:center;gap:0;width:48px;min-width:48px;height:48px;min-height:48px;margin:0 auto 14px;padding:4px;border-radius:15px}.main-site-d-wrap{width:38px;height:38px;flex:0 0 38px}.main-site-copy,.main-site-arrow,.main-site-link:after{display:none}.main-site-link:before{display:none}}
-@media(max-width:600px){.main-site-link{width:44px;min-width:44px;height:44px;min-height:44px;margin-bottom:12px;border-radius:13px}.main-site-d-wrap{width:36px;height:36px;flex-basis:36px}.main-site-d{width:31px;height:31px;font-size:19px}}
-@media(prefers-reduced-motion:reduce){.main-site-link,.main-site-link:before,.main-site-d,.main-site-orbit,.main-site-arrow{transition:none!important;animation:none!important}}
+/* =========================================================
+   DORI MAIN-SITE NAVIGATION
+   Premium sidebar shortcut · desktop / compact / touch
+========================================================= */
+.main-site-link{
+  --nav-gold:#f4d782;
+  --nav-gold-soft:rgba(244,215,130,.16);
+  position:relative;isolation:isolate;overflow:hidden;
+  display:grid;grid-template-columns:46px minmax(0,1fr) 32px;align-items:center;
+  gap:11px;min-height:78px;margin:0 4px 20px;padding:12px 12px;
+  border:1px solid rgba(244,215,130,.19);border-radius:17px;
+  color:#f4e8bf;text-decoration:none;
+  background:
+    radial-gradient(ellipse at 0% 0%,rgba(232,190,80,.12),transparent 58%),
+    linear-gradient(128deg,rgba(15,33,64,.98),rgba(6,15,32,.98));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 7px 22px rgba(0,0,0,.17);
+  transition:transform .26s cubic-bezier(.2,.75,.25,1),border-color .26s ease,box-shadow .26s ease,background .26s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.main-site-link:before{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:0;
+  background:linear-gradient(112deg,transparent 15%,rgba(255,239,184,.095) 46%,transparent 76%);
+  transform:translateX(-65%);transition:transform .65s cubic-bezier(.2,.75,.25,1),opacity .25s ease;
+}
+.main-site-link:after{
+  content:"";position:absolute;left:15px;right:15px;bottom:0;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(244,215,130,.5),transparent);opacity:.45;
+}
+.main-site-link:hover{
+  transform:translateY(-2px);
+  border-color:rgba(244,215,130,.43);
+  background:
+    radial-gradient(ellipse at 0% 0%,rgba(232,190,80,.17),transparent 60%),
+    linear-gradient(128deg,rgba(20,43,81,.99),rgba(7,17,36,.99));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 13px 29px rgba(0,0,0,.24),0 0 0 1px rgba(244,215,130,.035);
+}
+.main-site-link:hover:before{opacity:1;transform:translateX(65%)}
+.main-site-link:active{transform:translateY(0) scale(.985);box-shadow:inset 0 2px 8px rgba(0,0,0,.2)}
+.main-site-link:focus-visible{outline:2px solid var(--nav-gold);outline-offset:3px}
+.main-site-mark{position:relative;display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px}
+.main-site-mark-halo{
+  position:absolute;inset:1px;border:1px solid rgba(244,215,130,.26);border-radius:50%;
+  transform:scale(.84);transition:transform .32s ease,border-color .32s ease,box-shadow .32s ease;
+}
+.main-site-mark-core{
+  position:relative;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;
+  border:1px solid rgba(249,226,158,.9);color:#10182b;
+  background:linear-gradient(145deg,#fff 0%,#f4f4f2 52%,#dfe5f1 100%);
+  font-family:Arial,sans-serif;font-size:20px;font-weight:700;line-height:1;
+  box-shadow:0 2px 7px rgba(0,0,0,.24),inset 0 1px 0 #fff;
+  transition:transform .32s cubic-bezier(.2,.8,.2,1),box-shadow .32s ease;
+}
+.main-site-mark-shortcut{
+  position:absolute;right:-1px;bottom:-1px;display:grid;place-items:center;
+  width:17px;height:17px;border:1px solid #15213a;border-radius:50%;
+  color:#111a2c;background:linear-gradient(145deg,#ffe9a4,#d4ab4c);
+  box-shadow:0 2px 5px rgba(0,0,0,.3);transition:transform .3s ease,filter .3s ease;
+}
+.main-site-mark-shortcut svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.main-site-link:hover .main-site-mark-halo{transform:scale(1);border-color:rgba(244,215,130,.62);box-shadow:0 0 15px rgba(244,215,130,.08)}
+.main-site-link:hover .main-site-mark-core{transform:translateY(-1px) rotate(-4deg);box-shadow:0 4px 12px rgba(0,0,0,.28),inset 0 1px 0 #fff}
+.main-site-link:hover .main-site-mark-shortcut{transform:translate(1px,-1px);filter:brightness(1.08)}
+.main-site-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.main-site-meta{display:flex;align-items:center;gap:6px;font-family:Arial,sans-serif;font-size:8px;letter-spacing:1.55px;font-weight:700;line-height:1.15;color:#bca96d;white-space:nowrap}
+.main-site-live-dot{width:5px;height:5px;flex:0 0 5px;border-radius:50%;background:#e7c96e;box-shadow:0 0 0 3px rgba(231,201,110,.09)}
+.main-site-copy strong{display:block;color:#fff0bf;font-size:14px;font-weight:400;line-height:1.35;letter-spacing:.05px;white-space:nowrap}
+.main-site-copy small{display:block;color:#91a0ba;font-size:10px;font-weight:400;line-height:1.35;white-space:nowrap}
+.main-site-arrow{display:grid;place-items:center;width:30px;height:30px;border:1px solid rgba(244,215,130,.12);border-radius:11px;color:#e6ce87;background:rgba(255,255,255,.018);transition:transform .28s cubic-bezier(.2,.8,.2,1),border-color .28s ease,background .28s ease,color .28s ease}
+.main-site-arrow svg{display:block;width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.main-site-link:hover .main-site-arrow{transform:translate(2px,-1px);color:#fff0b8;border-color:rgba(244,215,130,.36);background:rgba(244,215,130,.075)}
+/* Collapsed sidebar: keep a clear, touch-friendly shortcut instead of squeezing the label. */
+@media(max-width:900px){
+  .main-site-link{display:flex;justify-content:center;align-items:center;gap:0;width:48px;min-width:48px;height:50px;min-height:50px;margin:0 auto 14px;padding:2px;border-radius:15px}
+  .main-site-link:before,.main-site-link:after{display:none}
+  .main-site-mark{width:42px;height:42px;flex:0 0 42px}
+  .main-site-copy,.main-site-arrow{display:none}
+  .main-site-link:hover{transform:translateY(-1px)}
+}
+@media(max-width:600px){
+  .main-site-link{width:44px;min-width:44px;height:46px;min-height:46px;margin-bottom:12px;border-radius:14px}
+  .main-site-mark{width:39px;height:39px;flex-basis:39px}
+  .main-site-mark-core{width:31px;height:31px;font-size:19px}
+  .main-site-mark-shortcut{width:16px;height:16px}
+}
+@media(hover:none){
+  .main-site-link:hover{transform:none}
+  .main-site-link:active{transform:scale(.96);border-color:rgba(244,215,130,.48)}
+}
+@media(prefers-reduced-motion:reduce){
+  .main-site-link,.main-site-link:before,.main-site-mark-halo,.main-site-mark-core,.main-site-mark-shortcut,.main-site-arrow{transition:none!important;animation:none!important}
+}
