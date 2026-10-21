@@ -116,6 +116,14 @@ BEGIN
         )
       END;
 
+    -- The AFTER UPDATE trigger writes one precise timestamped price record.
+    -- Set its reason in transaction-local state so it is saved with the exact update.
+    PERFORM set_config(
+      'app.dori_price_change_reason',
+      format('DORI ISSUE #%s: %s', v_issue_number, trim(p_title)),
+      true
+    );
+
     UPDATE public.dori_stocks
     SET previous_price = v_old_current,
         current_price = v_new_current,
@@ -128,18 +136,6 @@ BEGIN
         ),
         updated_at = clock_timestamp()
     WHERE id = v_stock.id;
-
-    INSERT INTO public.dori_stock_prices(
-      stock_id, price, previous_price, change_amount, change_percent, reason
-    )
-    VALUES (
-      v_stock.id,
-      v_new_current,
-      v_old_current,
-      v_new_current - v_old_current,
-      v_actual_change_percent,
-      format('DORI ISSUE #%s: %s', v_issue_number, trim(p_title))
-    );
 
     INSERT INTO public.dori_stock_issue_impacts(
       issue_id, stock_id, ticker, change_percent, old_price, new_price
