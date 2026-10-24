@@ -1192,6 +1192,7 @@ async function newsCenter() {
         <p>신문과 퀴즈를 회차별로 한눈에 확인하고, 클릭 한 번으로 전문적인 편집 화면으로 이동합니다.</p>
       </div>
       <div class="news-head-actions">
+        <button class="secondary" id="showSurveyResponses">✉ 설문 응답 보기</button>
         <button class="secondary" id="newsRefresh">↻ 새로고침</button>
         <button class="primary" id="newIssue">＋ 새 회차</button>
       </div>
@@ -1301,6 +1302,32 @@ async function newsCenter() {
         window.location.href = `./editor.html?issue=${encodeURIComponent(issue)}`;
       };
     });
+  };
+
+  $("#showSurveyResponses").onclick = async () => {
+    const old = document.getElementById("surveyResponsePanel");
+    if (old) { old.remove(); return; }
+    const panel = document.createElement("section");
+    panel.id = "surveyResponsePanel";
+    panel.className = "panel";
+    panel.style.cssText = "margin:20px 0;padding:24px;border:1px solid rgba(133,160,255,.25);border-radius:18px;background:rgba(13,20,49,.88)";
+    panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><div class="eyebrow">SURVEY & FEEDBACK</div><h2 style="margin:6px 0">설문 조사 및 평가 응답</h2><p style="color:#aeb8d6;margin:0">응답자별 제출 내용과 보상 기록을 확인합니다.</p></div><button class="secondary" id="closeSurveyResponses">닫기</button></div><div id="surveyResponseContent" style="margin-top:18px">응답을 불러오는 중…</div>';
+    document.querySelector(".news-center-head").after(panel);
+    panel.querySelector("#closeSurveyResponses").onclick = () => panel.remove();
+    const box = panel.querySelector("#surveyResponseContent");
+    const { data, error } = await sb.from("rockey_news_survey_responses").select("id,news_number,user_id,login_id,user_name,response,reward_coins,submitted_at").order("submitted_at", {ascending:false}).limit(2000);
+    if (error) { box.innerHTML = '<div class="empty news-error">' + esc(error.message) + '</div>'; return; }
+    const responses = data || [];
+    const issueOptions = [...new Set(responses.map(x => Number(x.news_number)))].sort((a,b)=>b-a);
+    box.innerHTML = '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px"><label for="surveyIssueFilter">신문 회차</label><select id="surveyIssueFilter" style="min-width:180px;padding:10px 12px;border-radius:10px;background:#101735;color:#fff;border:1px solid #34436e"><option value="all">모든 회차 ('+responses.length+'건)</option>'+issueOptions.map(n=>'<option value="'+n+'">제'+n+'회</option>').join('')+'</select><span style="color:#aeb8d6">총 '+responses.length.toLocaleString()+'건 · 최근 2,000건까지 표시</span></div><div id="surveyResponseRows"></div>';
+    const drawResponses = () => {
+      const selected = box.querySelector("#surveyIssueFilter").value;
+      const filtered = responses.filter(x => selected === "all" || String(x.news_number) === selected);
+      const rowsHtml = filtered.map(x => '<article style="padding:16px;margin:10px 0;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.025)"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#aeb8d6;font-size:13px"><b style="color:#b9c8ff">제'+esc(x.news_number)+'회</b><span>'+esc(x.user_name || x.login_id || x.user_id)+'</span><span>'+esc(new Date(x.submitted_at).toLocaleString("ko-KR"))+'</span></div><p style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;margin:12px 0;color:#f3f5ff">'+esc(x.response)+'</p><small style="color:#72e3ae">지급 기록: '+Number(x.reward_coins||0).toLocaleString()+' 돌돌코인</small></article>').join("");
+      box.querySelector("#surveyResponseRows").innerHTML = rowsHtml || '<div class="empty">선택한 회차에 응답이 없습니다.</div>';
+    };
+    box.querySelector("#surveyIssueFilter").onchange = drawResponses;
+    drawResponses();
   };
 
   $("#newsRefresh").onclick = load;
