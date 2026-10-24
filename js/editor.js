@@ -84,6 +84,7 @@ function dbQuestionTypeToUi(value) {
   if (type === "subjective") {
     return "short_answer";
   }
+  if (type === "survey") return "survey";
 
   /*
     혹시 이전 데이터에 이미 UI 값이 들어있다면
@@ -96,6 +97,7 @@ function dbQuestionTypeToUi(value) {
   if (type === "short_answer") {
     return "short_answer";
   }
+  if (type === "survey") return "survey";
 
   /*
     현재 DB enum에는 ox가 없지만,
@@ -125,6 +127,7 @@ function uiQuestionTypeToDb(value) {
   if (type === "short_answer") {
     return "subjective";
   }
+  if (type === "survey") return "survey";
 
   /*
     이미 DB 값이 들어온 경우도 안전하게 처리
@@ -171,6 +174,7 @@ function isQuizReady(r) {
     DB 기준:
       subjective → 주관식
   */
+  if (type === "survey") return Boolean(q);
   if (
     type === "subjective" ||
     type === "short_answer"
@@ -875,6 +879,7 @@ function renderEditor() {
               >
                 주관식
               </option>
+              <option value="survey" ${uiQuestionType === "survey" ? "selected" : ""}>설문 조사 및 평가</option>
 
             </select>
 
@@ -1120,7 +1125,7 @@ async function saveIssue(e) {
     quizStarted &&
     (
       !payload.question.trim() ||
-      !answer
+      (!answer && uiQuestionType !== "survey")
     )
   ) {
 
