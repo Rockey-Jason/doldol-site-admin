@@ -1352,10 +1352,12 @@ async function newsCenter() {
 function isQuizReady(row) {
   if (!row) return false;
   const question = String(row.question ?? "").trim();
+  const type = String(row.question_type ?? "multiple").toLowerCase();
+  if (type === "survey") return Boolean(question);
   const answer = String(row.answer ?? "").trim();
   if (!question || !answer) return false;
   const choices = [1,2,3,4,5].map(n => String(row[`choice${n}`] ?? "").trim()).filter(Boolean);
-  return choices.length > 0;
+  return type === "subjective" || type === "short_answer" ? true : choices.length > 0;
 }
 
 
