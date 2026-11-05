@@ -482,7 +482,7 @@ async function boot() {
         setVerified(30);
         showApp();
         const hashPage = location.hash.replace("#", "").trim();
-        const allowedPages = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security"]);
+        const allowedPages = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security","stock-economy"]);
         render(allowedPages.has(hashPage) ? hashPage : "dashboard");
       } else {
         clearVerified();
@@ -580,6 +580,7 @@ function render(page) {
 
   const pages = {
     dashboard,
+    "stock-economy": stockEconomy,
     "ai-training": aiTraining,
     users,
     news,
