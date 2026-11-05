@@ -600,6 +600,31 @@ function render(page) {
 }
 
 
+
+/* =====================================================
+   돌돌증권 경제 - 관리자 센터 내부 화면
+===================================================== */
+function stockEconomy() {
+  const frameUrl = new URL("./stock-economy-editor.html", location.href);
+  frameUrl.searchParams.set("embedded", "1");
+  frameUrl.searchParams.set("v", "20261106-1");
+  content.innerHTML = `
+    <div class="stock-embed-shell">
+      <iframe id="stockEconomyFrame" title="돌돌증권 경제 관리"
+        src="${esc(frameUrl.href)}" loading="eager"
+        referrerpolicy="same-origin"></iframe>
+    </div>
+  `;
+}
+
+window.addEventListener("message", event => {
+  if (event.origin !== location.origin || event.data?.type !== "DORI_ADMIN_NAVIGATE") return;
+  if (event.source !== document.querySelector("#stockEconomyFrame")?.contentWindow) return;
+  if (event.data.page !== "dashboard") return;
+  history.replaceState(null, "", "#dashboard");
+  render("dashboard");
+});
+
 /* =====================================================
    테이블 개수
 ===================================================== */
