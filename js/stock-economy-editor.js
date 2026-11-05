@@ -4,7 +4,7 @@ function toast(msg,ok=true){const e=$("#toast");e.textContent=msg;e.className=ok
 async function requireAdmin(){const {data,error}=await sb.auth.getSession();if(error||!data.session?.user)throw new Error("관리자 로그인 세션이 없습니다.");const {data:p,error:pe}=await sb.from("users").select("is_admin,user_level,name").eq("user_id",String(data.session.user.id)).single();if(pe)throw pe;if(p?.is_admin!==true||Number(p.user_level||0)<10)throw new Error("관리자 권한이 없습니다.");}
 async function loadStocks(){const {data,error}=await sb.from("dori_stocks").select("id,ticker,name,current_price").eq("is_active",true).order("id");if(error)throw error;return data||[]}
 async function render(){const stocks=await loadStocks();$("#econApp").innerHTML=`
-<div class="econ-shell">
+<div class="econ-shell ${new URLSearchParams(location.search).get("embedded")==="1"?"econ-embedded":""}">
 <header class="econ-head"><div><span class="eyebrow">DOLDOL SECURITIES / ECONOMY</span><h1>💹 돌돌증권 경제 관리</h1><p>기업 실적과 배당을 운영하고, 실제 체결가와 기준가가 분리된 가상 시장을 관리합니다.</p></div><a class="primary" href="./index.html">← 관리자 센터</a></header>
 <div class="econ-grid">
 <section class="econ-card"><h2>📊 기업 실적 등록</h2><p>실적은 reference_price에 제한된 범위로 반영됩니다. current_price를 가짜 체결처럼 변경하지 않습니다.</p>
@@ -28,7 +28,7 @@ async function render(){const stocks=await loadStocks();$("#econApp").innerHTML=
 <section class="econ-card" style="margin-top:18px"><h2>📅 배당 지급 관리</h2><p>선언된 배당 중 지급일이 지난 항목을 확인하고 지급 처리합니다.</p><div class="econ-table" id="dividendTable">불러오는 중…</div></section>
 <section class="econ-card" style="margin-top:18px"><h2>📉 공매도 현황</h2><p>공매도 포지션은 별도 증거금으로 관리됩니다.</p><div class="econ-table" id="shortTable">불러오는 중…</div></section>
 </div>`;
-$("#financialForm").onsubmit=saveFinancial;$("#dividendForm").onsubmit=saveDividend;await loadTables();
+$("#econBack")?.addEventListener("click",()=>parent.postMessage({type:"DORI_ADMIN_NAVIGATE",page:"dashboard"},location.origin));$("#financialForm").onsubmit=saveFinancial;$("#dividendForm").onsubmit=saveDividend;await loadTables();
 }
 async function saveFinancial(e){e.preventDefault();const f=new FormData(e.target);try{const {data,error}=await sb.rpc("admin_record_dori_financials",{p_stock_id:Number(f.get("stock_id")),p_period_label:f.get("period_label").trim(),p_period_end:f.get("period_end"),p_revenue:Number(f.get("revenue")),p_operating_profit:Number(f.get("operating_profit")),p_net_profit:Number(f.get("net_profit")),p_eps:Number(f.get("eps")),p_revenue_growth:Number(f.get("revenue_growth")||0),p_profit_growth:Number(f.get("profit_growth")||0),p_guidance:f.get("guidance")||null,p_comment:f.get("comment")||null});if(error)throw error;toast("기업 실적이 저장되고 기준가에 반영되었습니다.");e.target.reset();}catch(err){toast(err.message||"실적 저장 실패",false)}}
 async function saveDividend(e){e.preventDefault();const f=new FormData(e.target);try{const {error}=await sb.rpc("admin_declare_dori_dividend",{p_stock_id:Number(f.get("stock_id")),p_dividend_per_share:Number(f.get("dividend_per_share")),p_record_date:f.get("record_date"),p_ex_dividend_date:f.get("ex_dividend_date"),p_payment_date:f.get("payment_date")});if(error)throw error;toast("배당이 선언되었습니다.");await loadTables();}catch(err){toast(err.message||"배당 선언 실패",false)}}
