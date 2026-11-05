@@ -257,3 +257,9 @@ html{background:#020817;overflow-x:hidden}body{overflow-x:hidden;-webkit-tap-hig
   .grid.cards { grid-template-columns:minmax(0,1fr); }
   .pill { letter-spacing:.3px; }
 }
+
+
+/* Embedded stock economy view inside the admin SPA */
+.stock-embed-shell{width:100%;min-width:0;min-height:calc(100vh - 100px);overflow:hidden;border:1px solid rgba(120,150,255,.12);border-radius:20px;background:#050b20}
+#stockEconomyFrame{display:block;width:100%;height:calc(100vh - 105px);min-height:1100px;border:0;background:transparent}
+@media(max-width:700px){.stock-embed-shell{border-radius:13px}#stockEconomyFrame{height:calc(100vh - 88px);min-height:1450px}}
