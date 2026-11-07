@@ -601,6 +601,17 @@ function render(page) {
 
 // Allow feature modules mounted inside this SPA to return to the native router.
 window.doriAdminRender = render;
+window.addEventListener("popstate", () => {
+  const route = location.hash.replace("#", "");
+  if (route === "news-editor" || route === "event-editor") {
+    if (state.page === "news") render("news");
+    else if (state.page === "events") render("events");
+    else render("dashboard");
+    return;
+  }
+  const allowed = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security","stock-economy"]);
+  render(allowed.has(route) ? route : "dashboard");
+});
 
 
 
