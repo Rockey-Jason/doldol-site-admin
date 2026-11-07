@@ -604,17 +604,170 @@ function render(page) {
 /* =====================================================
    돌돌증권 경제 - 관리자 센터 내부 화면
 ===================================================== */
-function stockEconomy() {
-  const frameUrl = new URL("./stock-economy-editor.html", location.href);
-  frameUrl.searchParams.set("embedded", "1");
-  frameUrl.searchParams.set("v", "20261106-1");
+async function stockEconomy() {
   content.innerHTML = `
-    <div class="stock-embed-shell">
-      <iframe id="stockEconomyFrame" title="돌돌증권 경제 관리"
-        src="${esc(frameUrl.href)}" loading="eager"
-        referrerpolicy="same-origin"></iframe>
+    <div class="news-center-head">
+      <div><div class="eyebrow">DOLDOL SECURITIES / ECONOMY</div><h1>💹 돌돌증권 경제 관리</h1>
+      <p>기업 실적, 배당, 공매도 현황을 관리자 센터 안에서 관리합니다. 별도 웹페이지나 중첩 프레임을 열지 않습니다.</p></div>
+      <button class="secondary" id="econRefresh">↻ 새로고침</button>
     </div>
+    <div class="grid cards econ-summary">
+      <div class="stat-card"><span>🏢</span><b id="econStockCount">—</b><small>운영 종목</small></div>
+      <div class="stat-card"><span>💰</span><b id="econDividendCount">—</b><small>배당 기록</small></div>
+      <div class="stat-card"><span>📉</span><b id="econShortCount">—</b><small>공매도 기록</small></div>
+      <div class="stat-card"><span>🔐</span><b>서버 검증</b><small>관리자 RPC 사용</small></div>
+    </div>
+    <div class="grid econ-native-grid">
+      <section class="panel">
+        <h2>📊 기업 실적 등록</h2>
+        <p class="muted">실적은 서버 RPC를 통해 기준가에 반영됩니다.</p>
+        <form id="econFinancialForm" class="econ-native-form">
+          <label>종목<select name="stock_id" id="econFinancialStock" required></select></label>
+          <div class="econ-native-two">
+            <label>기간명<input name="period_label" placeholder="2026 Q3" required></label>
+            <label>기말일<input name="period_end" type="date" required></label>
+          </div>
+          <div class="econ-native-two">
+            <label>매출<input name="revenue" type="number" min="0" value="0" required></label>
+            <label>영업이익<input name="operating_profit" type="number" value="0" required></label>
+            <label>순이익<input name="net_profit" type="number" value="0" required></label>
+            <label>EPS<input name="eps" type="number" step="0.01" value="0" required></label>
+            <label>매출 성장률 %<input name="revenue_growth" type="number" step="0.1" value="0"></label>
+            <label>이익 성장률 %<input name="profit_growth" type="number" step="0.1" value="0"></label>
+          </div>
+          <label>가이던스<textarea name="guidance" rows="2"></textarea></label>
+          <label>경영진 코멘트<textarea name="comment" rows="2"></textarea></label>
+          <button class="primary" type="submit">실적 반영</button>
+        </form>
+      </section>
+      <section class="panel">
+        <h2>💰 배당 선언</h2>
+        <p class="muted">기준일·배당락일·지급일을 구분해 기록합니다.</p>
+        <form id="econDividendForm" class="econ-native-form">
+          <label>종목<select name="stock_id" id="econDividendStock" required></select></label>
+          <label>주당 배당금<input name="dividend_per_share" type="number" min="1" value="1000" required></label>
+          <div class="econ-native-two">
+            <label>배당 기준일<input name="record_date" type="date" required></label>
+            <label>배당락일<input name="ex_dividend_date" type="date" required></label>
+          </div>
+          <label>지급일<input name="payment_date" type="date" required></label>
+          <button class="primary" type="submit">배당 선언</button>
+        </form>
+      </section>
+    </div>
+    <section class="panel"><h2>📅 배당 지급 관리</h2><div id="econDividendTable">불러오는 중…</div></section>
+    <section class="panel"><h2>📉 공매도 현황</h2><div id="econShortTable">불러오는 중…</div></section>
+    <div id="econMessage" class="status" role="status"></div>
   `;
+  const financialForm = $("#econFinancialForm");
+  const dividendForm = $("#econDividendForm");
+  $("#econRefresh").onclick = () => loadNativeEconomy();
+  financialForm.onsubmit = saveNativeFinancial;
+  dividendForm.onsubmit = saveNativeDividend;
+  await loadNativeEconomy();
+}
+
+async function loadNativeEconomy() {
+  const message = $("#econMessage");
+  try {
+    const { data: stocks, error: stockError } = await sb.from("dori_stocks")
+      .select("id,ticker,name,current_price").eq("is_active", true).order("id");
+    if (stockError) throw stockError;
+    const options = (stocks || []).map(s => `<option value="${esc(s.id)}">${esc(s.name)} · ${esc(s.ticker)}</option>`).join("");
+    ["#econFinancialStock","#econDividendStock"].forEach(selector => {
+      const select = $(selector);
+      if (select) select.innerHTML = options || '<option value="">운영 종목 없음</option>';
+    });
+    $("#econStockCount").textContent = (stocks || []).length.toLocaleString();
+
+    const { data: dividends, error: dividendError } = await sb.from("dori_stock_dividends")
+      .select("id,stock_id,dividend_per_share,record_date,ex_dividend_date,payment_date,status,dori_stocks(name,ticker)")
+      .order("payment_date", { ascending: false }).limit(300);
+    if (dividendError) throw dividendError;
+    $("#econDividendCount").textContent = (dividends || []).length.toLocaleString();
+    $("#econDividendTable").innerHTML = dividends?.length ? `
+      <div class="table-scroll"><table><thead><tr><th>종목</th><th>주당 배당</th><th>기준일</th><th>배당락일</th><th>지급일</th><th>상태</th><th>작업</th></tr></thead><tbody>
+      ${dividends.map(d => `<tr><td>${esc(d.dori_stocks?.name || "—")} · ${esc(d.dori_stocks?.ticker || "")}</td><td>${Number(d.dividend_per_share || 0).toLocaleString()}</td><td>${esc(d.record_date)}</td><td>${esc(d.ex_dividend_date)}</td><td>${esc(d.payment_date)}</td><td>${esc(d.status)}</td><td>${d.status === "DECLARED" ? `<button class="mini secondary" data-dividend-capture="${esc(d.id)}">기준일 확정</button> <button class="mini primary" data-dividend-pay="${esc(d.id)}">지급 처리</button>` : "—"}</td></tr>`).join("")}
+      </tbody></table></div>` : '<div class="empty">배당 기록이 없습니다.</div>';
+
+    // The short-position table is optional on older deployments. Its absence must
+    // not break the entire economy dashboard or hide dividend management.
+    const { data: shorts, error: shortError } = await sb.from("dori_stock_short_positions")
+      .select("id,quantity,entry_price,status,realized_pnl,opened_at,dori_stocks(name,ticker)")
+      .order("opened_at", { ascending: false }).limit(300);
+    if (shortError) {
+      $("#econShortTable").innerHTML = `<div class="warning"><b>공매도 데이터에 접근할 수 없습니다.</b><br>${esc(shortError.message)}<br><small>테이블이 실제로 존재하는지와 Supabase API 스키마 캐시 반영 여부를 확인하세요. 배당 및 기업 실적 관리는 계속 사용할 수 있습니다.</small></div>`;
+      $("#econShortCount").textContent = "오류";
+    } else {
+      $("#econShortCount").textContent = (shorts || []).length.toLocaleString();
+      $("#econShortTable").innerHTML = shorts?.length ? `
+        <div class="table-scroll"><table><thead><tr><th>종목</th><th>수량</th><th>진입가</th><th>상태</th><th>실현 손익</th></tr></thead><tbody>
+        ${shorts.map(s => `<tr><td>${esc(s.dori_stocks?.name || "—")}</td><td>${Number(s.quantity || 0).toLocaleString()}</td><td>${Number(s.entry_price || 0).toLocaleString()}</td><td>${esc(s.status)}</td><td>${Number(s.realized_pnl || 0).toLocaleString()}</td></tr>`).join("")}
+        </tbody></table></div>` : '<div class="empty">공매도 기록이 없습니다.</div>';
+    }
+    if (message) message.textContent = "경제 관리 데이터를 불러왔습니다.";
+    document.querySelectorAll("[data-dividend-capture]").forEach(b => b.onclick = () => captureNativeDividend(b.dataset.dividendCapture));
+    document.querySelectorAll("[data-dividend-pay]").forEach(b => b.onclick = () => payNativeDividend(b.dataset.dividendPay));
+  } catch (error) {
+    console.error("경제 관리 로딩 오류:", error);
+    if (message) message.textContent = error.message || "경제 데이터를 불러오지 못했습니다.";
+    toast(error.message || "경제 데이터를 불러오지 못했습니다.", false);
+  }
+}
+
+async function saveNativeFinancial(event) {
+  event.preventDefault();
+  const f = new FormData(event.currentTarget);
+  try {
+    const { error } = await sb.rpc("admin_record_dori_financials", {
+      p_stock_id:Number(f.get("stock_id")), p_period_label:String(f.get("period_label")).trim(),
+      p_period_end:f.get("period_end"), p_revenue:Number(f.get("revenue")),
+      p_operating_profit:Number(f.get("operating_profit")), p_net_profit:Number(f.get("net_profit")),
+      p_eps:Number(f.get("eps")), p_revenue_growth:Number(f.get("revenue_growth") || 0),
+      p_profit_growth:Number(f.get("profit_growth") || 0), p_guidance:f.get("guidance") || null,
+      p_comment:f.get("comment") || null
+    });
+    if (error) throw error;
+    toast("기업 실적이 저장되었습니다.");
+    event.currentTarget.reset();
+    await loadNativeEconomy();
+  } catch (error) { toast(error.message || "실적 저장 실패", false); }
+}
+
+async function saveNativeDividend(event) {
+  event.preventDefault();
+  const f = new FormData(event.currentTarget);
+  try {
+    const { error } = await sb.rpc("admin_declare_dori_dividend", {
+      p_stock_id:Number(f.get("stock_id")), p_dividend_per_share:Number(f.get("dividend_per_share")),
+      p_record_date:f.get("record_date"), p_ex_dividend_date:f.get("ex_dividend_date"),
+      p_payment_date:f.get("payment_date")
+    });
+    if (error) throw error;
+    toast("배당이 선언되었습니다.");
+    event.currentTarget.reset();
+    await loadNativeEconomy();
+  } catch (error) { toast(error.message || "배당 선언 실패", false); }
+}
+
+async function captureNativeDividend(id) {
+  if (!confirm("현재 주주 보유량을 배당 기준일 스냅샷으로 확정할까요?")) return;
+  try {
+    const { data, error } = await sb.rpc("admin_capture_dori_dividend_record", { p_dividend_id:Number(id) });
+    if (error) throw error;
+    toast("배당 기준일 확정: " + Number(data?.eligible_accounts || 0).toLocaleString() + "개 계정");
+    await loadNativeEconomy();
+  } catch (error) { toast(error.message || "기준일 확정 실패", false); }
+}
+
+async function payNativeDividend(id) {
+  if (!confirm("이 배당을 지금 지급할까요?")) return;
+  try {
+    const { data, error } = await sb.rpc("admin_pay_dori_dividend", { p_dividend_id:Number(id) });
+    if (error) throw error;
+    toast("배당 지급 완료: " + Number(data?.total_paid || 0).toLocaleString() + " 돌돌코인");
+    await loadNativeEconomy();
+  } catch (error) { toast(error.message || "배당 지급 실패", false); }
 }
 
 window.addEventListener("message", event => {
