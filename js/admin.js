@@ -1352,6 +1352,37 @@ async function bulkReward() {
     });
 }
 
+async function openEventEditor(newsNumber) {
+  const token = state.renderToken;
+  content.innerHTML = '<div class="panel"><div class="news-loading">이벤트 편집 화면을 불러오는 중…</div></div>';
+  try {
+    const response = await fetch("./event-editor.html", { cache: "no-store" });
+    if (!response.ok) throw new Error("이벤트 편집 화면을 불러오지 못했습니다.");
+    const markup = await response.text();
+    const parsed = new DOMParser().parseFromString(markup, "text/html");
+    const app = parsed.querySelector("#editorApp");
+    const toastNode = parsed.querySelector("#toast");
+    if (!app) throw new Error("이벤트 편집 화면 구조가 올바르지 않습니다.");
+    if (token !== state.renderToken) return;
+    content.innerHTML = "";
+    const host = document.createElement("div");
+    host.className = "spa-editor-host";
+    host.append(app);
+    if (toastNode) host.append(toastNode);
+    content.append(host);
+    const url = new URL(location.href);
+    url.search = "";
+    url.searchParams.set("news_number", String(newsNumber));
+    url.hash = "#event-editor";
+    history.pushState({ page: "event-editor", newsNumber }, "", url);
+    await import(`./js/event-editor.js?spa=${Date.now()}`);
+  } catch (error) {
+    console.error("이벤트 편집기 통합 오류:", error);
+    content.innerHTML = `<div class="panel warning">${esc(error.message || "이벤트 편집기를 열지 못했습니다.")}<button class="secondary" id="returnEvents">목록으로</button></div>`;
+    $("#returnEvents").onclick = () => render("events");
+  }
+}
+
 async function openNewsEditor(issue, isNew = false) {
   const token = state.renderToken;
   content.innerHTML = '<div class="panel"><div class="news-loading">편집 화면을 불러오는 중…</div></div>';
@@ -1373,6 +1404,8 @@ async function openNewsEditor(issue, isNew = false) {
     content.append(host);
     const url = new URL(location.href);
     url.search = "";
+    url.searchParams.set("issue", String(issue));
+    if (isNew) url.searchParams.set("new", "1");
     url.hash = "#news-editor";
     history.pushState({ page: "news-editor", issue, isNew }, "", url);
     await import(`./js/editor.js?spa=${Date.now()}`);
@@ -2156,8 +2189,7 @@ function renderEventList(rows) {
 
   document.querySelectorAll("[data-event-edit]").forEach(btn => {
     btn.onclick = () => {
-      const issue = encodeURIComponent(btn.dataset.eventEdit);
-      window.location.href = `./event-editor.html?news_number=${issue}`;
+      openEventEditor(btn.dataset.eventEdit);
     };
   });
 }
