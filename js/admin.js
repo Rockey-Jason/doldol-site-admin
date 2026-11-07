@@ -784,14 +784,6 @@ async function payNativeDividend(id) {
   } catch (error) { toast(error.message || "배당 지급 실패", false); }
 }
 
-window.addEventListener("message", event => {
-  if (event.origin !== location.origin || event.data?.type !== "DORI_ADMIN_NAVIGATE") return;
-  if (event.source !== document.querySelector("#stockEconomyFrame")?.contentWindow) return;
-  if (event.data.page !== "dashboard") return;
-  history.replaceState(null, "", "#dashboard");
-  render("dashboard");
-});
-
 /* =====================================================
    테이블 개수
 ===================================================== */
