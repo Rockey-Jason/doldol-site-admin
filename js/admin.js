@@ -482,7 +482,7 @@ async function boot() {
         setVerified(30);
         showApp();
         const hashPage = location.hash.replace("#", "").trim();
-        const allowedPages = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security","stock-economy"]);
+        const allowedPages = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security","stock-economy","platform"]);
         render(allowedPages.has(hashPage) ? hashPage : "dashboard");
       } else {
         clearVerified();
@@ -590,7 +590,8 @@ function render(page) {
     events,
     stats,
     logs,
-    security
+    security,
+    platform
   };
 
   const pageFunction =
@@ -609,7 +610,7 @@ window.addEventListener("popstate", () => {
     else render("dashboard");
     return;
   }
-  const allowed = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security","stock-economy"]);
+  const allowed = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security","stock-economy","platform"]);
   render(allowed.has(route) ? route : "dashboard");
 });
 
@@ -2683,6 +2684,87 @@ async function logs() {
   `;
 }
 
+
+/* =====================================================
+   사이트 진단 — read-only runtime checks
+===================================================== */
+
+async function platform() {
+  const root = $("#content");
+  const token = state.renderToken;
+  if (!root) return;
+
+  root.innerHTML = [
+    '<div class="platform-head"><div><span class="platform-eyebrow">DORI PLATFORM / HEALTH</span><h1>사이트 진단 센터</h1><p>관리자 세션과 데이터 연결, 브라우저 환경을 읽기 전용으로 확인합니다.</p></div><button class="primary" id="platformRun" type="button">↻ 진단 실행</button></div>',
+    '<div class="platform-grid" id="platformResults"><div class="panel platform-loading">진단 준비 중…</div></div>',
+    '<section class="panel platform-note"><h2>점검 범위와 주의사항</h2><p>이 화면은 현재 브라우저의 네트워크·저장 공간·관리자 인증·데이터베이스 연결만 확인합니다. 잔액, 거래, 회원 정보는 수정하지 않습니다.</p><p>RLS 정책, SECURITY DEFINER 함수, 인덱스, Auth 비밀번호 보호 등은 Supabase Database Advisors에서 별도로 확인해야 합니다. 경고가 표시되어도 곧바로 취약점으로 단정하지 말고 함수 내부 권한 검사와 테이블 권한을 함께 검토하세요.</p><div class="platform-links"><a href="https://supabase.com/dashboard/project/scttowfhygcpdirrekqm/advisors/security" target="_blank" rel="noopener noreferrer">보안 Advisor ↗</a><a href="https://supabase.com/dashboard/project/scttowfhygcpdirrekqm/advisors/performance" target="_blank" rel="noopener noreferrer">성능 Advisor ↗</a><a href="https://github.com/Rockey-Jason/doldol-site" target="_blank" rel="noopener noreferrer">메인 사이트 코드 ↗</a></div></section>',
+    '<section class="panel platform-note"><h2>서비스 바로가기</h2><div class="platform-links"><a href="https://rockey-jason.github.io/doldol-site/" target="_blank" rel="noopener noreferrer">돌이사이트 메인 ↗</a><a href="https://rockey-jason.github.io/doldol-site/dori-world/" target="_blank" rel="noopener noreferrer">돌이 월드 ↗</a><a href="https://rockey-jason.github.io/doldol-site/dori-bank.html" target="_blank" rel="noopener noreferrer">돌이은행 ↗</a><a href="https://rockey-jason.github.io/doldol-site/doldolstock.html" target="_blank" rel="noopener noreferrer">돌돌증권 ↗</a><a href="https://rockey-jason.github.io/doldol-site/doronium-factory/" target="_blank" rel="noopener noreferrer">도로늄 공장 ↗</a><a href="https://rockey-jason.github.io/doldol-site/rockey/" target="_blank" rel="noopener noreferrer">ROCKEY ↗</a></div></section>'
+  ].join("");
+
+  const button = $("#platformRun");
+  const resultBox = $("#platformResults");
+  const isCurrent = () => token === state.renderToken && state.page === "platform" && $("#platformResults") === resultBox;
+  const statusCard = item =>
+    '<article class="platform-card"><span class="platform-card-label">' + esc(item.label) + '</span><strong class="' + esc(item.tone) + '">' + esc(item.status) + '</strong><small>' + esc(item.detail) + '</small></article>';
+
+  async function runChecks() {
+    if (button) { button.disabled = true; button.textContent = "진단 중…"; }
+    if (isCurrent()) resultBox.innerHTML = '<div class="panel platform-loading">연결 상태를 확인하고 있습니다…</div>';
+
+    let session = null;
+    let sessionError = null;
+    try {
+      const auth = await sb.auth.getSession();
+      session = auth.data && auth.data.session ? auth.data.session : null;
+      sessionError = auth.error || null;
+    } catch (error) { sessionError = error; }
+
+    let adminVerified = false;
+    let verifyError = null;
+    if (session && session.access_token) {
+      try { adminVerified = await serverVerifiedSession(session.access_token); }
+      catch (error) { verifyError = error; }
+    }
+
+    let databaseOk = false;
+    let databaseDetail = "관리자 인증이 확인되면 연결을 점검합니다.";
+    if (adminVerified) {
+      try {
+        const response = await sb.from("users").select("user_id", {count:"exact",head:true});
+        databaseOk = !response.error;
+        databaseDetail = response.error ? response.error.message : "관리자 전용 users 조회에 성공했습니다.";
+      } catch (error) { databaseDetail = error && error.message ? error.message : "데이터베이스 요청에 실패했습니다."; }
+    }
+
+    let storageOk = false;
+    let storageDetail = "브라우저 세션 저장 공간을 확인하지 못했습니다.";
+    try {
+      const key = "__dori_platform_health_check__";
+      sessionStorage.setItem(key, "ok");
+      storageOk = sessionStorage.getItem(key) === "ok";
+      sessionStorage.removeItem(key);
+      storageDetail = storageOk ? "임시 읽기·쓰기 확인 완료. 테스트 데이터는 삭제했습니다." : "임시 저장 확인에 실패했습니다.";
+    } catch (error) {
+      storageDetail = error && error.message ? error.message : "브라우저 저장 공간이 차단되어 있습니다.";
+    }
+
+    const online = navigator.onLine !== false;
+    const checks = [
+      {label:"네트워크 연결",status:online ? "정상" : "오프라인",tone:online ? "ok" : "warn",detail:online ? "브라우저가 온라인 상태입니다." : "인터넷 연결을 확인해 주세요."},
+      {label:"관리자 로그인 세션",status:session ? "확인됨" : "없음",tone:session ? "ok" : "warn",detail:sessionError ? sessionError.message : (session ? "Supabase Auth 세션이 존재합니다." : "관리자 계정으로 다시 로그인해 주세요.")},
+      {label:"서버 관리자 인증",status:adminVerified ? "통과" : "확인 필요",tone:adminVerified ? "ok" : "warn",detail:adminVerified ? "서버에서 관리자 인증 세션을 확인했습니다." : (verifyError && verifyError.message ? verifyError.message : "이메일 검증 또는 관리자 세션이 필요합니다.")},
+      {label:"데이터베이스 연결",status:databaseOk ? "정상" : "확인 필요",tone:databaseOk ? "ok" : "warn",detail:databaseDetail},
+      {label:"브라우저 저장 공간",status:storageOk ? "정상" : "제한됨",tone:storageOk ? "ok" : "warn",detail:storageDetail}
+    ];
+    if (!isCurrent()) return;
+    resultBox.innerHTML = checks.map(statusCard).join("") +
+      '<div class="platform-run-meta">마지막 확인: ' + esc(new Date().toLocaleString("ko-KR")) + ' · 읽기 전용 검사</div>';
+    if (button) { button.disabled = false; button.textContent = "↻ 다시 진단"; }
+  }
+
+  if (button) button.onclick = () => { void runChecks(); };
+  await runChecks();
+}
 
 /* =====================================================
    보안
