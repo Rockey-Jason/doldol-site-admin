@@ -702,3 +702,15 @@ td:last-child,th:last-child{padding-right:15px}
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Native economy workspace: no nested website/iframe */
+.econ-native-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.econ-native-form{display:grid;gap:13px}
+.econ-native-form label{display:grid;gap:7px;color:#aab8d2;font-size:12px}
+.econ-native-form input,.econ-native-form select,.econ-native-form textarea{width:100%;min-width:0;padding:12px 13px;border-radius:11px;border:1px solid #ffffff18;background:#030a18;color:#edf4ff;font:inherit}
+.econ-native-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.table-scroll{width:100%;overflow-x:auto}
+.table-scroll table{min-width:680px}
+@media(max-width:760px){.econ-native-grid{grid-template-columns:1fr}.econ-native-two{grid-template-columns:1fr 1fr}.econ-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:430px){.econ-native-two{grid-template-columns:1fr}.econ-summary{grid-template-columns:1fr 1fr}}
