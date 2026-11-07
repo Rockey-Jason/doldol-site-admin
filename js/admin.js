@@ -599,6 +599,9 @@ function render(page) {
   pageFunction();
 }
 
+// Allow feature modules mounted inside this SPA to return to the native router.
+window.doriAdminRender = render;
+
 
 
 /* =====================================================
@@ -1349,6 +1352,37 @@ async function bulkReward() {
     });
 }
 
+async function openNewsEditor(issue, isNew = false) {
+  const token = state.renderToken;
+  content.innerHTML = '<div class="panel"><div class="news-loading">편집 화면을 불러오는 중…</div></div>';
+  try {
+    const response = await fetch("./editor.html", { cache: "no-store" });
+    if (!response.ok) throw new Error("신문 편집 화면을 불러오지 못했습니다.");
+    const markup = await response.text();
+    const parsed = new DOMParser().parseFromString(markup, "text/html");
+    const auth = parsed.querySelector("#editorAuth");
+    const app = parsed.querySelector("#editorApp");
+    const toastNode = parsed.querySelector("#editorToast");
+    if (!auth || !app) throw new Error("편집 화면 구조가 올바르지 않습니다.");
+    if (token !== state.renderToken) return;
+    content.innerHTML = "";
+    const host = document.createElement("div");
+    host.className = "spa-editor-host";
+    host.append(auth, app);
+    if (toastNode) host.append(toastNode);
+    content.append(host);
+    const url = new URL(location.href);
+    url.search = "";
+    url.hash = "#news-editor";
+    history.pushState({ page: "news-editor", issue, isNew }, "", url);
+    await import(`./js/editor.js?spa=${Date.now()}`);
+  } catch (error) {
+    console.error("신문 편집기 통합 오류:", error);
+    content.innerHTML = `<div class="panel warning">${esc(error.message || "편집기를 열지 못했습니다.")}<button class="secondary" id="returnNews">목록으로</button></div>`;
+    $("#returnNews").onclick = () => render("news");
+  }
+}
+
 /* =====================================================
    돌이신문 & 돌이퀴즈
 ===================================================== */
@@ -1476,10 +1510,7 @@ async function newsCenter() {
     }).join("");
 
     document.querySelectorAll(".news-card").forEach(card => {
-      card.onclick = () => {
-        const issue = card.dataset.issue;
-        window.location.href = `./editor.html?issue=${encodeURIComponent(issue)}`;
-      };
+      card.onclick = () => openNewsEditor(card.dataset.issue, false);
     });
   };
 
@@ -1514,7 +1545,7 @@ async function newsCenter() {
   $("#newIssue").onclick = () => {
     const nums = rows.map(r => Number(r.news_number)).filter(Number.isFinite);
     const next = nums.length ? Math.max(...nums) + 1 : 1;
-    window.location.href = `./editor.html?issue=${next}&new=1`;
+    openNewsEditor(String(next), true);
   };
   document.querySelectorAll(".news-filters .filter").forEach(btn => {
     btn.onclick = () => {
