@@ -743,3 +743,29 @@ td:last-child,th:last-child{padding-right:15px}
   .spa-editor-host .editor-title small{display:none}
   .spa-editor-host .editor-user{max-width:76px}
 }
+
+
+/* Dori platform health center */
+.platform-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px}
+.platform-head h1{margin:7px 0 6px;font-family:"Black Han Sans",Jua,sans-serif;font-weight:400;font-size:34px}
+.platform-head p{margin:0;color:#8fa2c2;line-height:1.7}
+.platform-eyebrow{color:#d9bc7b;font:10px Arial,sans-serif;letter-spacing:2px}
+.platform-head button{min-width:130px}
+.platform-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:13px;margin-bottom:18px}
+.platform-card{display:flex;flex-direction:column;gap:11px;min-width:0;min-height:146px;padding:19px;border:1px solid #ffffff13;border-radius:20px;background:linear-gradient(145deg,#0b1933,#071020);box-shadow:0 12px 36px #0003}
+.platform-card-label{color:#8fa3c5;font-size:12px}
+.platform-card strong{font-size:23px;font-weight:400}
+.platform-card strong.ok{color:#75e2bd}
+.platform-card strong.warn{color:#f0c779}
+.platform-card small{color:#8192ad;font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.platform-note{margin:16px 0;padding:22px}
+.platform-note h2{margin:0 0 12px;font-size:19px}
+.platform-note p{color:#91a1ba;font-size:13px;line-height:1.75}
+.platform-links{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
+.platform-links a{display:inline-flex;align-items:center;min-height:38px;padding:0 13px;border:1px solid #ffffff16;border-radius:12px;background:#0b1a33;color:#c4d5ef;font-size:12px;text-decoration:none;transition:.2s}
+.platform-links a:hover{border-color:#d7b97877;background:#182846;color:#f2dfb6;transform:translateY(-2px)}
+.platform-loading{grid-column:1/-1;padding:30px;color:#90a3c5;text-align:center}
+.platform-run-meta{grid-column:1/-1;padding:7px 3px;color:#70829f;font-size:11px}
+@media(max-width:1200px){.platform-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.platform-head{align-items:flex-start;flex-direction:column}.platform-head h1{font-size:29px}.platform-head button{width:100%}.platform-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.platform-card{min-height:135px;padding:15px}.platform-card strong{font-size:20px}.platform-note{padding:17px}}
+@media(max-width:390px){.platform-grid{grid-template-columns:1fr}.platform-card{min-height:0}}
