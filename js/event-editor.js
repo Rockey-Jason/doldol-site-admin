@@ -108,7 +108,7 @@ async function save(e){
   if(configError)throw configError;
   if(!configured?.success)throw new Error(configured?.message||"이벤트 보상 설정을 저장하지 못했습니다.");
   toast(creating()?"이벤트와 특별 퀴즈를 생성했습니다.":"이벤트 보상과 특별 퀴즈를 저장했습니다.");
-  setTimeout(()=>location.href="./index.html#events",600);
+  setTimeout(()=>window.doriAdminRender?.("events"),600);
  }catch(err){
   b.disabled=false;b.textContent=creating()?"💾 이벤트 생성 및 설정 저장":"💾 변경사항 저장";
   toast(err.message||"저장에 실패했습니다.",false);
