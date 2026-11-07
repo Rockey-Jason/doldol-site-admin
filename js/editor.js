@@ -207,7 +207,11 @@ function answerNumber(v) {
 ========================================================= */
 
 function goList() {
-  location.href = "./index.html#news";
+  const url = new URL(location.href);
+  url.search = "";
+  url.hash = "#news";
+  history.replaceState({ page: "news" }, "", url);
+  if (typeof window.doriAdminRender === "function") window.doriAdminRender("news");
 }
 
 $("#backList").onclick = goList;
