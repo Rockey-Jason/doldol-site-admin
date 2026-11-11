@@ -554,7 +554,7 @@ async function boot() {
         setVerified(30);
         showApp();
         const hashPage = location.hash.replace("#", "").trim();
-        const allowedPages = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security","stock-economy"]);
+        const allowedPages = new Set(["dashboard","ai-training","users","news","issues","feedback","quiz","box","events","stats","logs","security","stock-economy"]);
         render(allowedPages.has(hashPage) ? hashPage : "dashboard");
       } else {
         clearVerified();
@@ -657,6 +657,7 @@ function render(page) {
     users,
     news,
     issues,
+    feedback,
     quiz,
     box,
     events,
@@ -681,7 +682,7 @@ window.addEventListener("popstate", () => {
     else render("dashboard");
     return;
   }
-  const allowed = new Set(["dashboard","ai-training","users","news","issues","quiz","box","events","stats","logs","security","stock-economy"]);
+  const allowed = new Set(["dashboard","ai-training","users","news","issues","feedback","quiz","box","events","stats","logs","security","stock-economy"]);
   render(allowed.has(route) ? route : "dashboard");
 });
 
@@ -3018,6 +3019,196 @@ if (logout) {
 
       location.reload();
     };
+}
+
+
+
+/* =====================================================
+   사용자 건의사항 관리
+   기존 dori_feedback 데이터와 DB의 관리자 전용 RLS 정책을 사용
+===================================================== */
+async function feedback() {
+  const token = state.renderToken;
+  content.innerHTML = '<div class="feedback-admin-head"><div><div class="eyebrow">DORI USER VOICE / ADMIN INBOX</div><h1>📩 건의사항 관리</h1><p>사용자가 제출한 버그 신고와 아이디어를 확인하고 처리 상태 및 관리자 답변을 관리합니다.</p></div><button class="secondary" id="feedbackRefresh" type="button">↻ 새로고침</button></div><div class="grid cards feedback-admin-stats"><div class="stat-card"><span>📥</span><b id="feedbackTotal">—</b><small>전체 접수</small></div><div class="stat-card"><span>🆕</span><b id="feedbackSubmitted">—</b><small>미확인</small></div><div class="stat-card"><span>🔎</span><b id="feedbackReviewing">—</b><small>검토 중</small></div><div class="stat-card"><span>⚙️</span><b id="feedbackProgress">—</b><small>수정 진행 중</small></div></div><section class="panel"><div class="feedback-admin-toolbar"><input id="feedbackSearch" type="search" placeholder="제목, 내용, 작성자 검색" aria-label="건의사항 검색"><select id="feedbackStatusFilter" aria-label="처리 상태 필터"><option value="all">모든 상태</option><option value="submitted">미확인</option><option value="reviewing">검토 중</option><option value="in_progress">수정 진행 중</option><option value="resolved">처리 완료</option><option value="declined">반영 어려움</option></select><select id="feedbackCategoryFilter" aria-label="건의 종류 필터"><option value="all">모든 종류</option><option value="bug">버그 및 오류</option><option value="idea">새로운 아이디어</option><option value="usability">편의성 개선</option><option value="other">기타 의견</option></select></div><div class="feedback-admin-resultline"><span id="feedbackResultCount">접수함을 불러오는 중…</span><span>최신 접수순 · 최대 200건</span></div><div id="feedbackAdminList" class="feedback-admin-list" aria-live="polite"><div class="feedback-admin-empty">건의사항을 불러오는 중…</div></div></section>';
+
+  const statusLabels = {submitted:"미확인",reviewing:"검토 중",in_progress:"수정 진행 중",resolved:"처리 완료",declined:"반영 어려움"};
+  const categoryLabels = {bug:"버그 및 오류",idea:"새로운 아이디어",usability:"편의성 개선",other:"기타 의견"};
+  const severityLabels = {normal:"일반",important:"중요",urgent:"긴급"};
+  let rows = [];
+  let profiles = new Map();
+  const list = $("#feedbackAdminList");
+  const search = $("#feedbackSearch");
+  const statusFilter = $("#feedbackStatusFilter");
+  const categoryFilter = $("#feedbackCategoryFilter");
+
+  function updateSummary() {
+    const count = value => rows.filter(row => row.status === value).length;
+    $("#feedbackTotal").textContent = String(rows.length);
+    $("#feedbackSubmitted").textContent = String(count("submitted"));
+    $("#feedbackReviewing").textContent = String(count("reviewing"));
+    $("#feedbackProgress").textContent = String(count("in_progress"));
+  }
+
+  function drawRows() {
+    if (token !== state.renderToken || state.page !== "feedback") return;
+    const query = search.value.trim().toLocaleLowerCase();
+    const status = statusFilter.value;
+    const category = categoryFilter.value;
+    const filtered = rows.filter(row => {
+      const profile = profiles.get(row.user_id);
+      const text = [row.title,row.description,row.admin_note,profile?.name,profile?.user_number,row.source_page].join(" ").toLocaleLowerCase();
+      return (!query || text.includes(query)) && (status === "all" || row.status === status) && (category === "all" || row.category === category);
+    });
+    $("#feedbackResultCount").textContent = filtered.length + "건 표시 · 전체 " + rows.length + "건";
+    list.textContent = "";
+    if (!filtered.length) {
+      const empty = document.createElement("div");
+      empty.className = "feedback-admin-empty";
+      empty.textContent = rows.length ? "검색 또는 필터 조건에 맞는 건의사항이 없습니다." : "아직 접수된 건의사항이 없습니다.";
+      list.appendChild(empty);
+      return;
+    }
+
+    filtered.forEach(row => {
+      const profile = profiles.get(row.user_id);
+      const card = document.createElement("article");
+      card.className = "feedback-admin-card";
+      const top = document.createElement("div");
+      top.className = "feedback-admin-card-top";
+      const main = document.createElement("div");
+      main.className = "feedback-admin-card-main";
+      const meta = document.createElement("div");
+      meta.className = "feedback-admin-meta";
+      meta.textContent = (categoryLabels[row.category] || "기타") + " · " + (severityLabels[row.severity] || "일반") + " · " + formatDate(row.created_at);
+      const title = document.createElement("h3");
+      title.textContent = row.title || "(제목 없음)";
+      const author = document.createElement("div");
+      author.className = "feedback-admin-author";
+      author.textContent = profile ? (profile.name || "이름 없음") + " · 사용자 번호 " + (profile.user_number ?? "—") : "사용자 " + String(row.user_id || "").slice(0,8) + "…";
+      main.append(meta,title,author);
+      const badge = document.createElement("span");
+      badge.className = "feedback-admin-status status-" + row.status;
+      badge.textContent = statusLabels[row.status] || row.status;
+      top.append(main,badge);
+      card.appendChild(top);
+
+      const details = document.createElement("details");
+      details.className = "feedback-admin-details";
+      const summary = document.createElement("summary");
+      summary.textContent = "건의 내용 및 접수 정보 보기";
+      const body = document.createElement("p");
+      body.className = "feedback-admin-description";
+      body.textContent = row.description || "";
+      const source = document.createElement("div");
+      source.className = "feedback-admin-source";
+      source.textContent = "접수 페이지: " + (row.source_page || "/") + " · 최근 수정: " + formatDate(row.updated_at);
+      details.append(summary,body,source);
+      card.appendChild(details);
+
+      const controls = document.createElement("div");
+      controls.className = "feedback-admin-controls";
+      const statusWrap = document.createElement("label");
+      statusWrap.className = "feedback-admin-field";
+      statusWrap.appendChild(document.createTextNode("처리 상태"));
+      const statusSelect = document.createElement("select");
+      statusSelect.setAttribute("aria-label","건의사항 처리 상태");
+      Object.entries(statusLabels).forEach(([value,label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        statusSelect.appendChild(option);
+      });
+      statusSelect.value = row.status;
+      statusWrap.appendChild(statusSelect);
+
+      const noteWrap = document.createElement("label");
+      noteWrap.className = "feedback-admin-field feedback-admin-note-field";
+      noteWrap.appendChild(document.createTextNode("사용자에게 보낼 답변"));
+      const note = document.createElement("textarea");
+      note.maxLength = 1600;
+      note.rows = 2;
+      note.placeholder = "검토 결과, 수정 계획 또는 반영이 어려운 이유를 적어 주세요.";
+      note.value = row.admin_note || "";
+      noteWrap.appendChild(note);
+
+      const save = document.createElement("button");
+      save.type = "button";
+      save.className = "primary feedback-admin-save";
+      save.textContent = "변경사항 저장";
+      save.addEventListener("click",async () => {
+        if (save.disabled) return;
+        save.disabled = true;
+        save.textContent = "저장 중…";
+        try {
+          const result = await sb.from("dori_feedback").update({
+            status: statusSelect.value,
+            admin_note: note.value.trim() || null,
+            updated_at: new Date().toISOString()
+          }).eq("id",row.id).select("id,status,admin_note,updated_at").maybeSingle();
+          if (result.error) throw result.error;
+          if (!result.data) throw new Error("변경된 항목이 없습니다. 관리자 인증 상태를 다시 확인해 주세요.");
+          row.status = result.data.status;
+          row.admin_note = result.data.admin_note;
+          row.updated_at = result.data.updated_at;
+          updateSummary();
+          toast("건의사항 처리 내용이 저장되었습니다.");
+          drawRows();
+        } catch(error) {
+          toast("저장 실패: " + (error.message || "권한 또는 연결을 확인해 주세요."),false);
+          save.disabled = false;
+          save.textContent = "변경사항 저장";
+        }
+      });
+      controls.append(statusWrap,noteWrap,save);
+      card.appendChild(controls);
+      list.appendChild(card);
+    });
+  }
+
+  async function loadFeedback() {
+    const refresh = $("#feedbackRefresh");
+    refresh.disabled = true;
+    refresh.textContent = "불러오는 중…";
+    list.textContent = "건의사항을 불러오는 중…";
+    try {
+      const sessionResult = await sb.auth.getSession();
+      if (sessionResult.error) throw sessionResult.error;
+      if (!sessionResult.data?.session) throw new Error("관리자 로그인 세션이 없습니다. 다시 로그인해 주세요.");
+      const authz = await sb.rpc("admin_is_authorized");
+      if (authz.error || authz.data !== true) throw new Error("검증된 관리자 권한이 확인되지 않았습니다. 관리자 센터에 다시 로그인해 주세요.");
+      const result = await sb.from("dori_feedback").select("id,user_id,category,title,description,severity,source_page,status,admin_note,created_at,updated_at").order("created_at",{ascending:false}).limit(200);
+      if (result.error) throw result.error;
+      rows = Array.isArray(result.data) ? result.data : [];
+      profiles = new Map();
+      const ids = [...new Set(rows.map(row => row.user_id).filter(Boolean))];
+      if (ids.length) {
+        const profileResult = await sb.from("users").select("user_id,user_number,name").in("user_id",ids);
+        if (!profileResult.error && Array.isArray(profileResult.data)) profileResult.data.forEach(profile => profiles.set(profile.user_id,profile));
+      }
+      if (token !== state.renderToken || state.page !== "feedback") return;
+      updateSummary();
+      drawRows();
+    } catch(error) {
+      if (token !== state.renderToken || state.page !== "feedback") return;
+      list.textContent = "";
+      const message = document.createElement("div");
+      message.className = "feedback-admin-empty is-error";
+      message.textContent = "접수함을 불러오지 못했습니다: " + (error.message || "잠시 후 다시 시도해 주세요.");
+      list.appendChild(message);
+      $("#feedbackResultCount").textContent = "조회 실패";
+    } finally {
+      if (token === state.renderToken && state.page === "feedback") {
+        refresh.disabled = false;
+        refresh.textContent = "↻ 새로고침";
+      }
+    }
+  }
+
+  $("#feedbackRefresh").addEventListener("click",loadFeedback);
+  search.addEventListener("input",drawRows);
+  statusFilter.addEventListener("change",drawRows);
+  categoryFilter.addEventListener("change",drawRows);
+  await loadFeedback();
 }
 
 
