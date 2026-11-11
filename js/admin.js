@@ -3134,8 +3134,13 @@ async function handleAdminAuthStateChange(event, session) {
           error
         );
 
-        // Do not sign out from inside the auth callback: doing so emits
-        // SIGNED_OUT and can create a cascading auth-event loop.
+        // This handler runs after the Supabase auth callback has returned.
+        // Discard a rejected passkey session locally; the public-site session
+        // uses a separate storage key and is not affected.
+        if (authMethodFromToken(session.access_token) === "passkey") {
+          await sb.auth.signOut({ scope: "local" }).catch(() => {});
+        }
+
         clearVerified();
         $("#authGate")?.classList.remove("hidden");
         $("#app")?.classList.add("hidden");
