@@ -743,3 +743,57 @@ td:last-child,th:last-child{padding-right:15px}
   .spa-editor-host .editor-title small{display:none}
   .spa-editor-host .editor-user{max-width:76px}
 }
+
+
+/* =====================================================
+   관리자 센터 패스키 로그인 / 관리
+===================================================== */
+.auth-card-admin{max-width:470px}
+.auth-eyebrow{margin:2px 0 8px;color:#81aef8;text-align:center;font:700 10px/1.4 Arial,sans-serif;letter-spacing:.2em}
+.auth-card-admin>p{margin:0 0 20px}
+.passkey-primary{width:100%;min-height:76px;display:flex;align-items:center;gap:14px;padding:15px 17px;text-align:left;border:1px solid #74a9ff66;background:linear-gradient(120deg,#174b9b,#4a39a8);box-shadow:0 13px 38px #245bdc38}
+.passkey-primary:hover{filter:brightness(1.12);transform:translateY(-2px)}
+.passkey-primary:disabled{opacity:.6;cursor:wait;transform:none}
+.passkey-primary-icon{display:grid;place-items:center;flex:0 0 42px;height:42px;border-radius:13px;background:#ffffff17;font-size:22px}
+.passkey-primary-copy{display:flex;flex:1;flex-direction:column;gap:5px}
+.passkey-primary-copy strong{font-size:16px;letter-spacing:-.02em}
+.passkey-primary-copy small{color:#dce8ff;font-size:11px;font-weight:400}
+.passkey-primary-arrow{font-size:21px;color:#e3edff}
+.passkey-subtext{margin:11px 4px 0!important;color:#8193b4!important;font-size:11px;line-height:1.65;text-align:center}
+.auth-card-admin .status{margin-top:11px;min-height:24px}
+.auth-fallback{margin-top:17px;padding-top:15px;border-top:1px solid #ffffff17;text-align:left}
+.auth-fallback summary{cursor:pointer;color:#9eafcd;text-align:center;font-size:12px;list-style:none}
+.auth-fallback summary::-webkit-details-marker{display:none}
+.auth-fallback summary:after{content:"＋";margin-left:7px;color:#80aaff}
+.auth-fallback[open] summary:after{content:"−"}
+.auth-fallback>p{margin:13px 0;color:#8fa2c2;font-size:11px;line-height:1.7;text-align:left}
+.auth-fallback form{padding-top:2px}
+.auth-fallback label{margin:13px 0}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.topbar-security-button{border:1px solid #6a91dc55;color:#d8e7ff;background:#10264b}
+.admin-security-dialog{width:min(520px,calc(100vw - 28px));max-height:min(82vh,720px);overflow:auto;padding:24px;border:1px solid #7da9e54a;border-radius:22px;background:linear-gradient(150deg,#0b1b38,#050c1d 72%);color:#edf4ff;box-shadow:0 30px 100px #000b}
+.admin-security-dialog::backdrop{background:#0009;backdrop-filter:blur(7px)}
+.admin-security-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.admin-security-dialog-head h2{margin:4px 0 0;font-family:"Black Han Sans";font-weight:400;font-size:23px}
+.admin-security-dialog-head .eyebrow{margin:0;color:#83b9ff;font:700 9px Arial,sans-serif;letter-spacing:.18em}
+.admin-security-dialog-copy{margin:13px 0 17px;color:#9eb0cd;font-size:12px;line-height:1.8}
+.admin-security-dialog-actions{display:flex;gap:9px;flex-wrap:wrap}
+.admin-security-dialog-actions button{min-height:42px}
+.admin-passkey-list{display:grid;gap:9px;margin-top:15px}
+.admin-passkey-empty{padding:16px;border:1px dashed #6e91c340;border-radius:13px;color:#8498b7;font-size:12px;line-height:1.7}
+.admin-passkey-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border:1px solid #ffffff16;border-radius:13px;background:#07152b}
+.admin-passkey-item>div{display:grid;gap:5px;min-width:0}
+.admin-passkey-item strong{color:#e7f1ff;font-size:13px;overflow-wrap:anywhere}
+.admin-passkey-item small{color:#8499b8;font-size:10px;line-height:1.6}
+.admin-passkey-delete{flex:0 0 auto;color:#ffbbc4;border:1px solid #f18a9a35;background:#4a172633}
+.admin-passkey-status{min-height:20px;margin-top:12px;color:#85e2b7;font-size:11px;line-height:1.7}
+.admin-passkey-status.error{color:#ffadb7}
+.admin-security-dialog-foot{margin-top:12px;padding-top:12px;border-top:1px solid #ffffff12;color:#7186a7;font-size:10px;line-height:1.7}
+@media(max-width:600px){
+  .auth-card-admin{padding:27px 21px}
+  .passkey-primary{min-height:70px;padding:13px}
+  .passkey-primary-copy strong{font-size:14px}
+  .topbar-actions{gap:6px}
+  .topbar-security-button{padding:8px 9px;font-size:11px}
+  .admin-security-dialog{padding:18px}
+}
