@@ -580,7 +580,7 @@ async function boot() {
     );
 
     await sb.auth
-      .signOut()
+      .signOut({ scope: "local" })
       .catch(() => {});
 
     clearVerified();
@@ -2990,7 +2990,7 @@ if (loginForm) {
           "로그인에 실패했습니다.";
 
         await sb.auth
-          .signOut()
+          .signOut({ scope: "local" })
           .catch(() => {});
 
         clearVerified();
@@ -3014,7 +3014,7 @@ if (logout) {
 
       clearVerified();
 
-      await sb.auth.signOut();
+      await sb.auth.signOut({ scope: "local" });
 
       location.reload();
     };
