@@ -2,7 +2,18 @@ const cfg = window.DORI_ADMIN_CONFIG || {};
 
 const sb = supabase.createClient(
   cfg.SUPABASE_URL,
-  cfg.SUPABASE_ANON_KEY
+  cfg.SUPABASE_ANON_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      // Separate admin storage so passkey re-authentication never signs out
+      // the public Dori website session in the same browser.
+      storageKey: "sb-scttowfhygcpdirrekqm-admin-center-auth",
+      experimental: { passkey: true }
+    }
+  }
 );
 
 const $ = s => document.querySelector(s);
@@ -361,6 +372,67 @@ async function serverVerifiedSession(accessToken) {
   return (await response.json().catch(() => false)) === true;
 }
 
+/* =====================================================
+   패스키 전용 관리자 검증
+   생체 정보는 브라우저/기기에서 검증하고 서버에는 전달하지 않습니다.
+===================================================== */
+function authMethodFromToken(accessToken) {
+  try {
+    const parts = String(accessToken || "").split(".");
+    if (parts.length !== 3) return "";
+    const encoded = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = encoded.padEnd(Math.ceil(encoded.length / 4) * 4, "=");
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+    const claims = JSON.parse(new TextDecoder().decode(bytes));
+    return Array.isArray(claims.amr) ? String(claims.amr[0]?.method || "") : "";
+  } catch (_) {
+    return "";
+  }
+}
+
+async function verifyPasskeyAdminSession(accessToken) {
+  if (!accessToken) throw new Error("패스키 로그인 세션을 찾을 수 없습니다.");
+  const response = await fetch(
+    cfg.SUPABASE_URL.replace(/\\/$/, "") + "/functions/v1/admin-passkey-verify-session",
+    {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": cfg.SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + accessToken
+      },
+      body: "{}"
+    }
+  );
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || body?.ok !== true) {
+    throw new Error(body?.message || "관리자 패스키 검증에 실패했습니다.");
+  }
+  return body;
+}
+
+async function ensureAdminVerifiedSession(accessToken) {
+  if (await serverVerifiedSession(accessToken)) {
+    return { verified: true, method: "existing" };
+  }
+
+  // Only a fresh Supabase Passkey sign-in can bypass the email-link step.
+  // The Edge Function independently validates JWT, AMR timestamp and admin role.
+  const method = authMethodFromToken(accessToken);
+  if (method !== "passkey") {
+    return { verified: false, method };
+  }
+
+  await verifyPasskeyAdminSession(accessToken);
+  const verified = await serverVerifiedSession(accessToken);
+  if (!verified) {
+    throw new Error("패스키 인증은 완료됐지만 관리자 접근 권한을 확인하지 못했습니다.");
+  }
+  return { verified: true, method: "passkey" };
+}
+
 
 /* =====================================================
    관리자 로그인
@@ -477,8 +549,8 @@ async function boot() {
 
     if (user) {
       await loadProfile(user);
-      const verified = await serverVerifiedSession(session.access_token);
-      if (verified) {
+      const authResult = await ensureAdminVerifiedSession(session.access_token);
+      if (authResult.verified) {
         setVerified(30);
         showApp();
         const hashPage = location.hash.replace("#", "").trim();
@@ -489,7 +561,7 @@ async function boot() {
         $("#authGate")?.classList.remove("hidden");
         $("#app")?.classList.add("hidden");
         const status = $("#authStatus");
-        if (status) status.textContent = "이메일 인증이 필요합니다. 로그인 화면에서 인증 메일을 다시 요청해 주세요.";
+        if (status) status.textContent = "이메일 인증 링크를 완료하거나 등록된 패스키로 로그인해 주세요.";
       }
       return;
     }
@@ -2738,6 +2810,160 @@ const loginForm =
   $("#loginForm");
 
 
+/* =====================================================
+   관리자 센터 전용 패스키 로그인
+===================================================== */
+const passkeyLoginButton = $("#passkeyLogin");
+if (passkeyLoginButton) {
+  passkeyLoginButton.addEventListener("click", async () => {
+    const status = $("#authStatus");
+    if (!window.PublicKeyCredential || !navigator.credentials) {
+      if (status) status.textContent = "이 브라우저는 패스키를 지원하지 않습니다. 최신 Chrome 또는 Edge를 사용해 주세요.";
+      return;
+    }
+
+    passkeyLoginButton.disabled = true;
+    if (status) status.textContent = "기기에 저장된 관리자 패스키를 확인하고 있습니다…";
+    try {
+      const { data: existing, error: sessionError } = await sb.auth.getSession();
+      if (sessionError) throw sessionError;
+      // Clear only the isolated admin-center session before asking for a fresh
+      // passkey ceremony. The public site's session uses a different storage key.
+      if (existing?.session) {
+        const { error: signOutError } = await sb.auth.signOut({ scope: "local" });
+        if (signOutError) throw signOutError;
+      }
+
+      const { data, error } = await sb.auth.signInWithPasskey();
+      if (error) throw error;
+      const session = data?.session || (await sb.auth.getSession()).data?.session;
+      if (!session?.access_token || !session?.user) {
+        throw new Error("패스키 인증 세션을 만들지 못했습니다.");
+      }
+      if (status) status.textContent = "기기 인증 완료. 관리자 권한을 확인하고 있습니다…";
+      // SIGNED_IN is handled by the shared auth listener below. It validates
+      // the Passkey AMR on the server before displaying the admin SPA.
+    } catch (error) {
+      console.error("Admin-center passkey sign-in failed:", error);
+      const message = String(error?.message || "");
+      if (status) {
+        status.textContent = /cancel|abort|notallowed/i.test(message)
+          ? "기기 인증이 취소되었거나 사용할 수 있는 패스키가 없습니다. 다시 시도하거나 최초 등록 메뉴를 이용해 주세요."
+          : (message || "패스키 로그인에 실패했습니다. 패스키가 등록된 기기인지 확인해 주세요.");
+      }
+    } finally {
+      passkeyLoginButton.disabled = false;
+    }
+  });
+}
+
+/* =====================================================
+   관리자 패스키 등록 / 관리
+===================================================== */
+const passkeyDialog = $("#adminPasskeyDialog");
+const passkeyListRoot = $("#adminPasskeyList");
+const passkeyStatus = $("#adminPasskeyStatus");
+
+function setPasskeyStatus(message, isError = false) {
+  if (!passkeyStatus) return;
+  passkeyStatus.textContent = message;
+  passkeyStatus.classList.toggle("error", !!isError);
+}
+
+async function loadAdminPasskeys() {
+  if (!passkeyListRoot) return;
+  if (!sb.auth.passkey?.list) {
+    passkeyListRoot.textContent = "현재 Supabase 패스키 관리 API를 사용할 수 없습니다. 라이브러리 버전을 확인해 주세요.";
+    return;
+  }
+  passkeyListRoot.textContent = "등록된 패스키를 불러오는 중…";
+  try {
+    const { data, error } = await sb.auth.passkey.list();
+    if (error) throw error;
+    const rows = Array.isArray(data) ? data : (Array.isArray(data?.passkeys) ? data.passkeys : []);
+    passkeyListRoot.replaceChildren();
+    if (!rows.length) {
+      const empty = document.createElement("div");
+      empty.className = "admin-passkey-empty";
+      empty.textContent = "아직 등록된 패스키가 없습니다. ‘이 기기에 패스키 등록’을 눌러 추가해 주세요.";
+      passkeyListRoot.appendChild(empty);
+      return;
+    }
+    rows.forEach((passkey) => {
+      const item = document.createElement("article");
+      item.className = "admin-passkey-item";
+      const copy = document.createElement("div");
+      const name = document.createElement("strong");
+      name.textContent = passkey.friendly_name || "등록된 패스키";
+      const meta = document.createElement("small");
+      const created = passkey.created_at ? new Date(passkey.created_at).toLocaleString("ko-KR") : "등록 날짜 정보 없음";
+      const used = passkey.last_used_at ? " · 최근 사용 " + new Date(passkey.last_used_at).toLocaleString("ko-KR") : "";
+      meta.textContent = "등록 " + created + used;
+      copy.append(name, meta);
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "secondary admin-passkey-delete";
+      remove.textContent = "삭제";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm("이 패스키를 삭제할까요? 이 기기에서는 다음부터 이 패스키로 로그인할 수 없습니다.")) return;
+        remove.disabled = true;
+        try {
+          const { error: deleteError } = await sb.auth.passkey.delete({ passkeyId: passkey.id });
+          if (deleteError) throw deleteError;
+          setPasskeyStatus("선택한 패스키를 삭제했습니다.");
+          await loadAdminPasskeys();
+        } catch (error) {
+          setPasskeyStatus(error?.message || "패스키를 삭제하지 못했습니다.", true);
+          remove.disabled = false;
+        }
+      });
+      item.append(copy, remove);
+      passkeyListRoot.appendChild(item);
+    });
+  } catch (error) {
+    console.error("Admin passkey list failed:", error);
+    passkeyListRoot.textContent = "패스키 목록을 불러오지 못했습니다. Supabase Passkey 설정을 확인해 주세요.";
+    setPasskeyStatus(error?.message || "패스키 목록 조회 실패", true);
+  }
+}
+
+$("#managePasskeysButton")?.addEventListener("click", async () => {
+  if (!passkeyDialog) return;
+  if (!passkeyDialog.open) passkeyDialog.showModal();
+  setPasskeyStatus("");
+  await loadAdminPasskeys();
+});
+
+$("#closeAdminPasskeyDialog")?.addEventListener("click", () => passkeyDialog?.close());
+
+$("#refreshAdminPasskeys")?.addEventListener("click", loadAdminPasskeys);
+
+$("#registerAdminPasskey")?.addEventListener("click", async () => {
+  const button = $("#registerAdminPasskey");
+  button.disabled = true;
+  button.textContent = "기기 인증을 기다리는 중…";
+  setPasskeyStatus("기기에서 지문·얼굴 인식 또는 PIN 인증을 진행해 주세요.");
+  try {
+    const { data, error } = await sb.auth.registerPasskey();
+    if (error) throw error;
+    setPasskeyStatus("패스키 등록이 완료됐습니다. 다음 로그인부터 이메일 인증 없이 사용할 수 있습니다.");
+    await loadAdminPasskeys();
+  } catch (error) {
+    console.error("Admin passkey registration failed:", error);
+    const message = String(error?.message || "");
+    setPasskeyStatus(
+      /cancel|abort|notallowed/i.test(message)
+        ? "패스키 등록이 취소됐습니다. 다시 시도할 수 있습니다."
+        : (message || "패스키 등록에 실패했습니다. 브라우저와 Supabase 설정을 확인해 주세요."),
+      true
+    );
+  } finally {
+    button.disabled = false;
+    button.textContent = "이 기기에 패스키 등록";
+  }
+});
+
+
 if (loginForm) {
 
   loginForm.onsubmit =
@@ -2879,21 +3105,22 @@ sb.auth.onAuthStateChange(
         await loadProfile(session.user);
 
         const params = new URLSearchParams(location.search);
-        const verifyToken = params.get("admin_verify_token");
+        const verifyToken = params.get("admin_verify_token") || params.get("admin_token");
         if (verifyToken) {
           await confirmEmailVerification(verifyToken, session.access_token);
           params.delete("admin_verify_token");
+          params.delete("admin_token");
           const nextQuery = params.toString();
           history.replaceState(null, "", location.pathname + (nextQuery ? "?" + nextQuery : "") + location.hash);
         }
 
-        const verified = await serverVerifiedSession(session.access_token);
-        if (!verified) {
+        const authResult = await ensureAdminVerifiedSession(session.access_token);
+        if (!authResult.verified) {
           clearVerified();
           $("#authGate")?.classList.remove("hidden");
           $("#app")?.classList.add("hidden");
           const status = $("#authStatus");
-          if (status) status.textContent = "이메일 인증이 필요합니다. 인증 메일의 링크를 열어 주세요.";
+          if (status) status.textContent = "이메일 인증 링크를 완료하거나 등록된 패스키로 로그인해 주세요.";
           return;
         }
 
