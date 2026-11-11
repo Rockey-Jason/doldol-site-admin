@@ -1,3 +1,11 @@
+[auth.passkey]
+enabled = true
+
+[auth.webauthn]
+rp_display_name = "돌이 관리자 센터"
+rp_id = "rockey-jason.github.io"
+rp_origins = ["https://rockey-jason.github.io"]
+
 [functions.admin-login-email]
 verify_jwt = false
 
@@ -5,4 +13,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.admin-verify-email]
+verify_jwt = true
+
+[functions.admin-passkey-verify-session]
 verify_jwt = true
