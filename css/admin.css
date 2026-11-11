@@ -797,3 +797,40 @@ td:last-child,th:last-child{padding-right:15px}
   .topbar-security-button{padding:8px 9px;font-size:11px}
   .admin-security-dialog{padding:18px}
 }
+
+
+/* 사용자 건의사항 관리 */
+.feedback-admin-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px}
+.feedback-admin-head h1{margin:7px 0;font-family:"Black Han Sans";font-weight:400;font-size:30px}
+.feedback-admin-head p{max-width:760px;margin:0;color:#91a2bf;font-size:13px;line-height:1.8}
+.feedback-admin-stats{margin-bottom:20px}
+.feedback-admin-toolbar{display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,190px) minmax(150px,190px);gap:10px;margin-bottom:14px}
+.feedback-admin-toolbar input,.feedback-admin-toolbar select,.feedback-admin-field select,.feedback-admin-field textarea{width:100%;min-width:0;padding:11px 13px;border:1px solid #ffffff20;border-radius:12px;color:#eaf2ff;background:#050e20;font:inherit;font-size:12px;outline:none}
+.feedback-admin-toolbar input:focus,.feedback-admin-toolbar select:focus,.feedback-admin-field select:focus,.feedback-admin-field textarea:focus{border-color:#559cff;box-shadow:0 0 0 3px #2680ff20}
+.feedback-admin-resultline{display:flex;justify-content:space-between;gap:12px;padding:0 2px 12px;color:#91a3c1;font-size:11px}
+.feedback-admin-resultline span:last-child{color:#647998}
+.feedback-admin-list{display:grid;gap:12px}
+.feedback-admin-card{padding:17px;border:1px solid #ffffff14;border-radius:17px;background:linear-gradient(145deg,#0a1832,#071126);box-shadow:0 12px 36px #0003}
+.feedback-admin-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.feedback-admin-card-main{min-width:0}
+.feedback-admin-meta{color:#8ea7c8;font-size:10px;line-height:1.6}
+.feedback-admin-card h3{margin:6px 0;color:#f0f5ff;font-size:17px;font-weight:400;overflow-wrap:anywhere}
+.feedback-admin-author{color:#a8bad5;font-size:11px}
+.feedback-admin-status{flex:0 0 auto;padding:7px 10px;border:1px solid #ffffff20;border-radius:999px;color:#c6d7ed;background:#ffffff08;font-size:10px;white-space:nowrap}
+.feedback-admin-status.status-submitted{color:#a9d7ff;border-color:#4e9ddd55;background:#23659b22}
+.feedback-admin-status.status-reviewing{color:#f3d28c;border-color:#d2a84d55;background:#8a641b22}
+.feedback-admin-status.status-in_progress{color:#d2bcff;border-color:#a58be755;background:#6844a322}
+.feedback-admin-status.status-resolved{color:#9be2bd;border-color:#57c48b55;background:#1b754422}
+.feedback-admin-status.status-declined{color:#f0aeb6;border-color:#d66a7955;background:#762d3822}
+.feedback-admin-details{margin-top:14px;border-top:1px solid #ffffff10;padding-top:11px}
+.feedback-admin-details summary{color:#a9c9ed;font-size:11px;cursor:pointer}
+.feedback-admin-description{margin:12px 0 8px;color:#d0dced;font-size:12px;line-height:1.85;white-space:pre-wrap;overflow-wrap:anywhere}
+.feedback-admin-source{color:#758aa9;font-size:10px;line-height:1.7}
+.feedback-admin-controls{display:grid;grid-template-columns:minmax(145px,190px) minmax(180px,1fr) auto;align-items:end;gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid #ffffff10}
+.feedback-admin-field{display:grid;gap:7px;min-width:0;color:#9eb2d0;font-size:10px}
+.feedback-admin-field textarea{resize:vertical;min-height:42px;line-height:1.6}
+.feedback-admin-save{min-height:42px;white-space:nowrap}
+.feedback-admin-empty{padding:30px 18px;border:1px dashed #ffffff22;border-radius:14px;color:#91a2bf;text-align:center;font-size:12px;line-height:1.8}
+.feedback-admin-empty.is-error{border-color:#c96b7955;color:#ffb6bf;background:#63212a22}
+@media(max-width:900px){.feedback-admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.feedback-admin-toolbar{grid-template-columns:1fr 1fr}.feedback-admin-toolbar input{grid-column:1/-1}.feedback-admin-controls{grid-template-columns:1fr 1fr}.feedback-admin-note-field{grid-column:1/-1}.feedback-admin-save{grid-column:1/-1}}
+@media(max-width:600px){.feedback-admin-head{align-items:stretch;flex-direction:column}.feedback-admin-head>button{align-self:flex-start}.feedback-admin-head h1{font-size:25px}.feedback-admin-stats{grid-template-columns:1fr 1fr}.feedback-admin-toolbar{grid-template-columns:1fr}.feedback-admin-toolbar input{grid-column:auto}.feedback-admin-resultline{font-size:10px}.feedback-admin-card{padding:13px}.feedback-admin-card-top{flex-direction:column}.feedback-admin-controls{grid-template-columns:1fr}.feedback-admin-note-field,.feedback-admin-save{grid-column:auto}}
