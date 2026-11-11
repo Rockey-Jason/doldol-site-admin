@@ -394,7 +394,7 @@ function authMethodFromToken(accessToken) {
 async function verifyPasskeyAdminSession(accessToken) {
   if (!accessToken) throw new Error("패스키 로그인 세션을 찾을 수 없습니다.");
   const response = await fetch(
-    cfg.SUPABASE_URL.replace(/\\/$/, "") + "/functions/v1/admin-passkey-verify-session",
+    cfg.SUPABASE_URL.replace(/\/$/, "") + "/functions/v1/admin-passkey-verify-session",
     {
       method: "POST",
       cache: "no-store",
