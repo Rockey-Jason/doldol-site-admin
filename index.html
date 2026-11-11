@@ -4,20 +4,31 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>돌이 관리자 센터</title>
-<link rel="stylesheet" href="css/admin.css?v=20261107-spa-2">
+<link rel="stylesheet" href="css/admin.css?v=20261111-passkey-admin-1">
 </head>
 <body>
 <div id="authGate" class="auth-gate">
-  <div class="auth-card">
+  <div class="auth-card auth-card-admin">
     <div class="logo">🐶</div>
+    <div class="auth-eyebrow">DORI ADMIN · PASSKEY ACCESS</div>
     <h1>돌이 관리자 센터</h1>
-    <p>관리자 계정 인증이 필요합니다.</p>
-    <form id="loginForm">
-      <label>계정 아이디<input id="loginId" autocomplete="username" required></label>
-      <label>계정 비밀번호<input id="password" type="password" autocomplete="current-password" required></label>
-      <button class="primary" type="submit">확인</button>
-    </form>
-    <div id="authStatus" class="status"></div>
+    <p>등록된 패스키로 관리자 인증을 진행합니다.</p>
+    <button id="passkeyLogin" class="primary passkey-primary" type="button">
+      <span class="passkey-primary-icon" aria-hidden="true">🔐</span>
+      <span class="passkey-primary-copy"><strong>생체 인식으로 바로 로그인</strong><small>지문 · 얼굴 인식 · Windows Hello</small></span>
+      <span class="passkey-primary-arrow" aria-hidden="true">↗</span>
+    </button>
+    <p class="passkey-subtext">기기에 등록된 패스키가 필요합니다. 생체 정보는 이 기기 밖으로 전송되지 않습니다.</p>
+    <div id="authStatus" class="status" role="status" aria-live="polite">패스키 인증을 준비하고 있습니다.</div>
+    <details class="auth-fallback">
+      <summary>처음 등록했거나 다른 방법으로 로그인하기</summary>
+      <p>패스키를 처음 등록할 때는 기존 관리자 계정으로 한 번 로그인하고 이메일 인증을 완료해야 합니다. 관리자 화면에 들어간 뒤 ‘패스키 관리’에서 이 기기를 등록하면 다음부터 이메일 인증 없이 패스키로 로그인할 수 있습니다.</p>
+      <form id="loginForm">
+        <label>계정 아이디<input id="loginId" autocomplete="username" required></label>
+        <label>계정 비밀번호<input id="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary" type="submit">기존 방식으로 로그인</button>
+      </form>
+    </details>
   </div>
 </div>
 
@@ -49,10 +60,24 @@
     <button id="logout" class="danger">로그아웃</button>
   </aside>
   <main>
-    <header class="topbar"><div><span id="pageTitle">대시보드</span><small id="adminName"></small></div><div class="pill">ADMIN VERIFIED</div></header>
+    <header class="topbar"><div><span id="pageTitle">대시보드</span><small id="adminName"></small></div><div class="topbar-actions"><button id="managePasskeysButton" class="secondary topbar-security-button" type="button">🔐 패스키 관리</button><div class="pill">ADMIN VERIFIED</div></div></header>
     <section id="content" class="content"></section>
   </main>
 </div>
+<dialog id="adminPasskeyDialog" class="admin-security-dialog" aria-labelledby="adminPasskeyDialogTitle">
+  <div class="admin-security-dialog-head">
+    <div><span class="eyebrow">ACCOUNT SECURITY</span><h2 id="adminPasskeyDialogTitle">관리자 패스키 관리</h2></div>
+    <button id="closeAdminPasskeyDialog" class="secondary" type="button" aria-label="닫기">×</button>
+  </div>
+  <p class="admin-security-dialog-copy">이 기기에 패스키를 등록하면 다음부터 관리자 센터에서 이메일 인증 없이 지문, 얼굴 인식 또는 Windows Hello PIN으로 로그인할 수 있습니다.</p>
+  <div class="admin-security-dialog-actions">
+    <button id="registerAdminPasskey" class="primary" type="button">이 기기에 패스키 등록</button>
+    <button id="refreshAdminPasskeys" class="secondary" type="button">목록 새로고침</button>
+  </div>
+  <div id="adminPasskeyList" class="admin-passkey-list" aria-live="polite"><div class="admin-passkey-empty">등록된 패스키를 확인할 수 있습니다.</div></div>
+  <div id="adminPasskeyStatus" class="admin-passkey-status" role="status" aria-live="polite"></div>
+  <div class="admin-security-dialog-foot">분실한 기기의 패스키는 여기에서 삭제할 수 있습니다. 최소 한 개의 복구 가능한 인증 수단을 유지해 주세요.</div>
+</dialog>
 <div id="toast"></div>
 <div id="sideEditor" class="side-editor" aria-hidden="true">
   <div class="side-editor-backdrop" data-close-editor></div>
@@ -61,8 +86,8 @@
     <div id="sideEditorBody" class="side-editor-body"></div>
   </aside>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
 <script src="js/config.js"></script>
-<script src="js/admin.js?v=20261107-spa-2"></script>
+<script src="js/admin.js?v=20261111-passkey-admin-1"></script>
 </body>
 </html>
