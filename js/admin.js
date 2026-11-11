@@ -3058,8 +3058,7 @@ document.addEventListener("keydown", e => { if(e.key === "Escape") closeSideEdit
    Supabase Auth 상태 변화 감지
 ===================================================== */
 
-sb.auth.onAuthStateChange(
-  async (event, session) => {
+async function handleAdminAuthStateChange(event, session) {
 
     console.log(
       "Supabase Auth:",
@@ -3146,8 +3145,29 @@ sb.auth.onAuthStateChange(
         }
       }
     }
-  }
-);
+}
+
+/*
+ * Supabase warns against awaiting client calls inside onAuthStateChange.
+ * Return synchronously, then run the asynchronous work after the auth lock
+ * has been released. Queue events so SIGNED_IN and TOKEN_REFRESHED do not race.
+ */
+let adminAuthEventQueue = Promise.resolve();
+
+sb.auth.onAuthStateChange((event, session) => {
+  window.setTimeout(() => {
+    adminAuthEventQueue = adminAuthEventQueue
+      .then(() => handleAdminAuthStateChange(event, session))
+      .catch(error => {
+        console.error("관리자 인증 이벤트 처리 오류:", error);
+        clearVerified();
+        $("#authGate")?.classList.remove("hidden");
+        $("#app")?.classList.add("hidden");
+        const status = $("#authStatus");
+        if (status) status.textContent = error?.message || "관리자 인증 상태를 확인하지 못했습니다.";
+      });
+  }, 0);
+});
 
 
 /* =====================================================
