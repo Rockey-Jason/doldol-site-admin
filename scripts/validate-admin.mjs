@@ -101,7 +101,7 @@ assert.match(passkey, /ipCount[^;]*userCount/s);
 assert.match(email, /auth\.getUser\(accessToken\)/);
 assert.match(email, /!profile\?\.is_admin/);
 assert.match(email, /Number\([\s\S]*?profile\.user_level[\s\S]*?< 10/);
-assert.match(email, /\.eq\([\s\S]*?["']used["']\s*,\s*false\)/);
+assert.match(email, /\.eq\(\s*["']used["']\s*,\s*false\s*\)/);
 assert.match(email, /if \(!consumed\)/);
 assert.match(authorizationSql, /u\.user_id = auth\.uid\(\)/);
 assert.match(authorizationSql, /u\.is_admin = true/);
