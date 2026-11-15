@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap');
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Jua,system-ui;background:#000018;color:#edf4ff}body{overflow-x:hidden}
 body:before{content:"";position:fixed;inset:-30%;z-index:-2;background:radial-gradient(circle at 20% 20%,#123a8b55,transparent 30%),radial-gradient(circle at 80% 70%,#1764c955,transparent 30%);animation:drift 16s ease-in-out infinite alternate}
 body:after{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(120deg,#00001a,#00000d 50%,#00112b);opacity:.9}
@@ -834,3 +833,115 @@ td:last-child,th:last-child{padding-right:15px}
 .feedback-admin-empty.is-error{border-color:#c96b7955;color:#ffb6bf;background:#63212a22}
 @media(max-width:900px){.feedback-admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.feedback-admin-toolbar{grid-template-columns:1fr 1fr}.feedback-admin-toolbar input{grid-column:1/-1}.feedback-admin-controls{grid-template-columns:1fr 1fr}.feedback-admin-note-field{grid-column:1/-1}.feedback-admin-save{grid-column:1/-1}}
 @media(max-width:600px){.feedback-admin-head{align-items:stretch;flex-direction:column}.feedback-admin-head>button{align-self:flex-start}.feedback-admin-head h1{font-size:25px}.feedback-admin-stats{grid-template-columns:1fr 1fr}.feedback-admin-toolbar{grid-template-columns:1fr}.feedback-admin-toolbar input{grid-column:auto}.feedback-admin-resultline{font-size:10px}.feedback-admin-card{padding:13px}.feedback-admin-card-top{flex-direction:column}.feedback-admin-controls{grid-template-columns:1fr}.feedback-admin-note-field,.feedback-admin-save{grid-column:auto}}
+
+
+/* =====================================================
+   DORI ADMIN — SHARED SITE DESIGN FOUNDATION
+   Kept intentionally separate from authentication logic.
+===================================================== */
+@font-face{
+  font-family:"HancomMalrangmalrang";
+  src:url("https://cdn.jsdelivr.net/gh/projectnoonnu/2406-1@1.0/HancomMalangMalang-Regular.woff2") format("woff2");
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+}
+:root{
+  color-scheme:dark;
+  --dori-bg-deep:#000010;
+  --dori-bg-primary:#000033;
+  --dori-ink:#f5f7ff;
+  --dori-muted:#a8b3cf;
+  --dori-blue:#86a7ff;
+  --dori-blue-strong:#5579e8;
+  --dori-cyan:#72d8e8;
+  --dori-gold:#f0d18a;
+  --dori-line:rgba(173,192,235,.17);
+  --dori-panel:rgba(9,18,48,.88);
+  --dori-radius-card:20px;
+  --dori-radius-control:12px;
+  --dori-ease:cubic-bezier(.2,.8,.2,1);
+  --dori-duration:260ms;
+  --dori-shadow:0 18px 54px rgba(0,0,0,.28);
+}
+html,body{
+  min-height:100%;
+  background:#000010;
+}
+body,body :where(*){
+  font-family:"HancomMalrangmalrang","Noto Sans KR",sans-serif!important;
+  font-weight:400!important;
+}
+body:before{
+  background:
+    radial-gradient(ellipse at 8% -8%,rgba(75,112,212,.22),transparent 43%),
+    radial-gradient(ellipse at 94% 10%,rgba(224,186,108,.10),transparent 38%),
+    radial-gradient(ellipse at 50% 100%,rgba(47,90,190,.12),transparent 55%);
+  opacity:1;
+}
+body:after{
+  background:linear-gradient(145deg,#000033 0%,#050b25 48%,#000010 100%);
+  opacity:.88;
+}
+button,input,select,textarea{font:inherit}
+button:not(:disabled),a[href],input,select,textarea,[role="button"]{
+  transition-duration:var(--dori-duration);
+  transition-timing-function:var(--dori-ease);
+}
+button:not(:disabled){border-radius:var(--dori-radius-control)}
+button:not(:disabled):active,[role="button"]:active{transform:scale(.985)}
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible{
+  outline:2px solid rgba(134,167,255,.96);
+  outline-offset:3px;
+}
+input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid rgba(114,216,232,.9);
+  outline-offset:1px;
+  box-shadow:0 0 0 4px rgba(114,216,232,.12);
+}
+.auth-card,.hero,.stat-card,.panel,.summary-card,.content-card,
+.issue-hero,.edit-header,.admin-security-dialog,.side-editor-panel,
+.auth-fallback,.news-panel{
+  border-color:var(--dori-line);
+  border-radius:var(--dori-radius-card);
+  box-shadow:var(--dori-shadow),inset 0 1px rgba(255,255,255,.035);
+}
+.auth-card,.panel,.stat-card,.content-card,.news-panel{
+  background:linear-gradient(145deg,rgba(12,25,62,.94),rgba(4,13,39,.96));
+}
+.topbar,.sidebar,.editor-topbar{
+  border-color:var(--dori-line);
+  background:rgba(2,8,31,.91);
+}
+.primary,.passkey-primary{
+  background:linear-gradient(135deg,#425fc2,#293d89);
+  border:1px solid rgba(134,167,255,.36);
+  box-shadow:0 8px 26px rgba(52,81,180,.24),inset 0 1px rgba(255,255,255,.1);
+}
+.primary:hover:not(:disabled),.passkey-primary:hover:not(:disabled){
+  background:linear-gradient(135deg,#5576df,#354da6);
+  border-color:rgba(166,190,255,.64);
+}
+.pill,.eyebrow,.issue-kicker{
+  color:var(--dori-gold);
+}
+input,select,textarea,.toolbar input{
+  border-color:var(--dori-line);
+  border-radius:var(--dori-radius-control);
+}
+table th,table td{border-bottom-color:rgba(173,192,235,.11)}
+#toast{
+  border:1px solid var(--dori-line);
+  border-radius:14px;
+  background:rgba(8,18,48,.97);
+  box-shadow:var(--dori-shadow);
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto!important}
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    scroll-behavior:auto!important;
+    transition-duration:.01ms!important;
+  }
+}
