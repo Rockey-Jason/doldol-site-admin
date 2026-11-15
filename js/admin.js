@@ -1451,7 +1451,7 @@ async function openEventEditor(newsNumber) {
     url.searchParams.set("news_number", String(newsNumber));
     url.hash = "#event-editor";
     history.pushState({ page: "event-editor", newsNumber }, "", url);
-    await import(`./js/event-editor.js?spa=${Date.now()}`);
+    await import(`./event-editor.js?spa=${Date.now()}`);
   } catch (error) {
     console.error("이벤트 편집기 통합 오류:", error);
     content.innerHTML = `<div class="panel warning">${esc(error.message || "이벤트 편집기를 열지 못했습니다.")}<button class="secondary" id="returnEvents">목록으로</button></div>`;
@@ -1484,7 +1484,7 @@ async function openNewsEditor(issue, isNew = false) {
     if (isNew) url.searchParams.set("new", "1");
     url.hash = "#news-editor";
     history.pushState({ page: "news-editor", issue, isNew }, "", url);
-    await import(`./js/editor.js?spa=${Date.now()}`);
+    await import(`./editor.js?spa=${Date.now()}`);
   } catch (error) {
     console.error("신문 편집기 통합 오류:", error);
     content.innerHTML = `<div class="panel warning">${esc(error.message || "편집기를 열지 못했습니다.")}<button class="secondary" id="returnNews">목록으로</button></div>`;
