@@ -834,3 +834,155 @@ td:last-child,th:last-child{padding-right:15px}
 .feedback-admin-empty.is-error{border-color:#c96b7955;color:#ffb6bf;background:#63212a22}
 @media(max-width:900px){.feedback-admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.feedback-admin-toolbar{grid-template-columns:1fr 1fr}.feedback-admin-toolbar input{grid-column:1/-1}.feedback-admin-controls{grid-template-columns:1fr 1fr}.feedback-admin-note-field{grid-column:1/-1}.feedback-admin-save{grid-column:1/-1}}
 @media(max-width:600px){.feedback-admin-head{align-items:stretch;flex-direction:column}.feedback-admin-head>button{align-self:flex-start}.feedback-admin-head h1{font-size:25px}.feedback-admin-stats{grid-template-columns:1fr 1fr}.feedback-admin-toolbar{grid-template-columns:1fr}.feedback-admin-toolbar input{grid-column:auto}.feedback-admin-resultline{font-size:10px}.feedback-admin-card{padding:13px}.feedback-admin-card-top{flex-direction:column}.feedback-admin-controls{grid-template-columns:1fr}.feedback-admin-note-field,.feedback-admin-save{grid-column:auto}}
+
+
+/* =========================================================
+   DORI UNIFIED DESIGN SYSTEM — admin center
+   Shared navy/gold palette, Hancom typography and motion timing.
+========================================================= */
+@font-face{
+  font-family:"HancomMalrangmalrang";
+  src:url("https://cdn.jsdelivr.net/gh/projectnoonnu/2406-1@1.0/HancomMalangMalang-Regular.woff2") format("woff2");
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+}
+:root{
+  --adm-bg:#000033;
+  --adm-panel:rgba(5,14,43,.94);
+  --adm-panel-2:rgba(9,22,54,.94);
+  --adm-line:rgba(195,211,245,.16);
+  --adm-line-strong:rgba(240,210,143,.34);
+  --adm-blue:#91b2ff;
+  --adm-blue-bright:#b9ccff;
+  --adm-gold:#f0d28f;
+  --adm-muted:#aab7d0;
+  --adm-shadow:0 22px 64px rgba(0,0,0,.34);
+  --dori-admin-ease:cubic-bezier(.2,.8,.2,1);
+}
+html,body{
+  min-height:100%;
+  font-family:"HancomMalrangmalrang",sans-serif!important;
+  font-weight:400!important;
+  background:#000033;
+  color:#f7f9ff;
+}
+body :not(svg):not(path):not([class*="fa-"]):not(.material-icons):not(.material-symbols-outlined):not(.iconify){
+  font-family:"HancomMalrangmalrang",sans-serif!important;
+  font-weight:400!important;
+}
+body:before{
+  background:
+    radial-gradient(circle at 18% 8%,rgba(91,132,210,.16),transparent 31%),
+    radial-gradient(circle at 84% 76%,rgba(224,185,112,.09),transparent 30%);
+  animation:drift 22s var(--dori-admin-ease) infinite alternate;
+}
+body:after{
+  background:linear-gradient(145deg,#07132f 0%,#000033 54%,#000010 100%);
+  opacity:.96;
+}
+button,a,[role="button"],input,select,textarea{
+  font-family:"HancomMalrangmalrang",sans-serif!important;
+  font-weight:400!important;
+  -webkit-tap-highlight-color:transparent;
+}
+button:not(:disabled),a,[role="button"],input,select,textarea{
+  transition:
+    color 240ms ease,
+    background-color 240ms ease,
+    border-color 240ms ease,
+    box-shadow 240ms ease,
+    transform 240ms var(--dori-admin-ease),
+    opacity 240ms ease;
+}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role="button"]:focus-visible{
+  outline:2px solid var(--adm-gold)!important;
+  outline-offset:3px!important;
+}
+.auth-card,.hero,.stat-card,.panel,.news-card,.edit-card,.feedback-admin-card,.admin-security-dialog,.side-editor-panel{
+  border-color:var(--adm-line);
+  box-shadow:var(--adm-shadow);
+}
+.auth-card,.panel,.stat-card,.feedback-admin-card{
+  background:linear-gradient(145deg,rgba(9,22,54,.96),rgba(3,10,33,.96));
+}
+.hero{
+  background:linear-gradient(135deg,rgba(12,29,67,.96),rgba(5,14,43,.96));
+}
+.sidebar{
+  background:linear-gradient(180deg,rgba(1,8,29,.97),rgba(0,0,24,.97));
+  border-right-color:var(--adm-line);
+}
+.sidebar nav button{
+  border:1px solid transparent;
+}
+.sidebar nav button.active,.sidebar nav button:hover{
+  color:#ffe8b5;
+  border-color:rgba(240,210,143,.2);
+  background:linear-gradient(100deg,rgba(190,149,76,.18),rgba(240,210,143,.06));
+}
+.topbar{
+  background:rgba(1,8,29,.92);
+  border-bottom-color:var(--adm-line);
+}
+.pill{
+  color:var(--adm-gold);
+  border-color:rgba(240,210,143,.35);
+  background:rgba(240,210,143,.06);
+}
+button.primary,.primary{
+  color:#111a2e!important;
+  border:1px solid rgba(255,232,181,.55)!important;
+  background:linear-gradient(135deg,#f6e2ad,#c69a55)!important;
+  box-shadow:0 9px 26px rgba(196,151,74,.2),inset 0 1px rgba(255,255,255,.42)!important;
+}
+button.primary:hover,.primary:hover{
+  filter:brightness(1.045);
+  box-shadow:0 13px 32px rgba(196,151,74,.27),inset 0 1px rgba(255,255,255,.55)!important;
+}
+button.secondary,.secondary{
+  color:#e8efff;
+  border:1px solid rgba(195,211,245,.2);
+  background:linear-gradient(145deg,rgba(20,39,77,.92),rgba(7,17,47,.96));
+}
+button.secondary:hover,.secondary:hover{
+  border-color:rgba(240,210,143,.35);
+  background:linear-gradient(145deg,rgba(32,52,91,.95),rgba(11,24,56,.98));
+}
+.auth-card input,.toolbar input,.feedback-admin-toolbar input,.feedback-admin-toolbar select,
+.feedback-admin-field select,.feedback-admin-field textarea,.professional-form input,
+.professional-form textarea,.professional-form select{
+  color:#f7f9ff;
+  border-color:rgba(195,211,245,.2);
+  background:rgba(0,5,27,.78);
+}
+.auth-card input:focus,.toolbar input:focus,.feedback-admin-toolbar input:focus,
+.feedback-admin-toolbar select:focus,.feedback-admin-field select:focus,
+.feedback-admin-field textarea:focus,.professional-form input:focus,
+.professional-form textarea:focus,.professional-form select:focus{
+  border-color:rgba(240,210,143,.72);
+  box-shadow:0 0 0 3px rgba(240,210,143,.13);
+}
+.content> *{
+  animation:doriAdminEnter 380ms var(--dori-admin-ease) both;
+}
+@keyframes doriAdminEnter{
+  from{opacity:0;transform:translateY(9px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@media(hover:none){
+  button:not(:disabled):hover,a:hover,[role="button"]:hover{transform:none}
+}
+@media(max-width:700px){
+  .content{padding:clamp(14px,4vw,22px)}
+  .topbar{padding-inline:clamp(12px,3vw,20px)}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+  body:before{animation:none!important}
+}
