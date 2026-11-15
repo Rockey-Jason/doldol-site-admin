@@ -1,5 +1,16 @@
 const cfg = window.DORI_ADMIN_CONFIG || {};
-const sb = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+// Match the isolated auth storage used by the admin shell. This lets the
+// editor reuse the already verified passkey session instead of looking for
+// a separate default Supabase session.
+const sb = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storageKey: "sb-scttowfhygcpdirrekqm-admin-center-auth",
+    experimental: { passkey: true }
+  }
+});
 const $ = s => document.querySelector(s);
 
 const params = new URLSearchParams(location.search);
@@ -235,6 +246,16 @@ async function boot() {
       throw new Error(
         "관리자 센터에서 먼저 로그인해 주세요."
       );
+    }
+
+    // Require the same server-verified admin session as the admin center.
+    // Passkey login is therefore accepted, but a merely cached/unverified
+    // session cannot open the editor.
+    const { data: authorized, error: authzError } =
+      await sb.rpc("admin_is_authorized");
+
+    if (authzError || authorized !== true) {
+      throw new Error("관리자 인증이 확인되지 않았습니다. 관리자 센터에서 다시 신체 인식 로그인해 주세요.");
     }
 
     state.user = session.user;
