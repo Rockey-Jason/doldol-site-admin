@@ -1,9 +1,25 @@
 const cfg=window.DORI_ADMIN_CONFIG||{};
-const sb=supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
+const sb=supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{
+ auth:{
+  persistSession:true,
+  autoRefreshToken:true,
+  detectSessionInUrl:true,
+  storageKey:"sb-scttowfhygcpdirrekqm-admin-center-auth",
+  experimental:{passkey:true}
+ }
+});
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 function toast(m,ok=true){const e=$("#toast");if(!e)return;e.textContent=m;e.className=ok?"show ok":"";clearTimeout(window.__t);window.__t=setTimeout(()=>e.className="",3500)}
-async function requireAdmin(){const {data,error}=await sb.auth.getSession();if(error||!data.session?.user)throw new Error("관리자 로그인 세션이 없습니다.");const {data:p,error:e}=await sb.from("users").select("is_admin,user_level,name").eq("user_id",String(data.session.user.id)).single();if(e)throw e;if(p?.is_admin!==true||Number(p.user_level||0)<10)throw new Error("관리자 권한이 없습니다.");}
+async function requireAdmin(){
+ const {data,error}=await sb.auth.getSession();
+ if(error||!data.session?.user)throw new Error("관리자 로그인 세션이 없습니다. 관리자 센터에서 신체 인식 로그인해 주세요.");
+ const {data:authorized,error:authzError}=await sb.rpc("admin_is_authorized");
+ if(authzError||authorized!==true)throw new Error("관리자 인증이 확인되지 않았습니다. 관리자 센터에서 다시 신체 인식 로그인해 주세요.");
+ const {data:p,error:e}=await sb.from("users").select("is_admin,user_level,name").eq("user_id",String(data.session.user.id)).single();
+ if(e)throw e;
+ if(p?.is_admin!==true||Number(p.user_level||0)<10)throw new Error("관리자 권한이 없습니다.");
+}
 const param=()=>new URLSearchParams(location.search).get("news_number");
 const creating=()=>new URLSearchParams(location.search).get("new")==="1";
 const defaultOptions=[{value:"A",label:"돌돌코인"},{value:"B",label:"도로늄"},{value:"C",label:"로키 포인트"},{value:"D",label:"돌이젬"}];
@@ -108,7 +124,7 @@ async function save(e){
   if(configError)throw configError;
   if(!configured?.success)throw new Error(configured?.message||"이벤트 보상 설정을 저장하지 못했습니다.");
   toast(creating()?"이벤트와 특별 퀴즈를 생성했습니다.":"이벤트 보상과 특별 퀴즈를 저장했습니다.");
-  setTimeout(()=>window.doriAdminRender?.("events"),600);
+  setTimeout(()=>window.location.assign("./index.html#events"),600);
  }catch(err){
   b.disabled=false;b.textContent=creating()?"💾 이벤트 생성 및 설정 저장":"💾 변경사항 저장";
   toast(err.message||"저장에 실패했습니다.",false);
