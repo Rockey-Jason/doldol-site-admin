@@ -1428,68 +1428,17 @@ async function bulkReward() {
     });
 }
 
-async function openEventEditor(newsNumber) {
-  const token = state.renderToken;
-  content.innerHTML = '<div class="panel"><div class="news-loading">이벤트 편집 화면을 불러오는 중…</div></div>';
-  try {
-    const response = await fetch("./event-editor.html", { cache: "no-store" });
-    if (!response.ok) throw new Error("이벤트 편집 화면을 불러오지 못했습니다.");
-    const markup = await response.text();
-    const parsed = new DOMParser().parseFromString(markup, "text/html");
-    const app = parsed.querySelector("#editorApp");
-    const toastNode = parsed.querySelector("#toast");
-    if (!app) throw new Error("이벤트 편집 화면 구조가 올바르지 않습니다.");
-    if (token !== state.renderToken) return;
-    content.innerHTML = "";
-    const host = document.createElement("div");
-    host.className = "spa-editor-host";
-    host.append(app);
-    if (toastNode) host.append(toastNode);
-    content.append(host);
-    const url = new URL(location.href);
-    url.search = "";
-    url.searchParams.set("news_number", String(newsNumber));
-    url.hash = "#event-editor";
-    history.pushState({ page: "event-editor", newsNumber }, "", url);
-    await import(`./event-editor.js?spa=${Date.now()}`);
-  } catch (error) {
-    console.error("이벤트 편집기 통합 오류:", error);
-    content.innerHTML = `<div class="panel warning">${esc(error.message || "이벤트 편집기를 열지 못했습니다.")}<button class="secondary" id="returnEvents">목록으로</button></div>`;
-    $("#returnEvents").onclick = () => render("events");
-  }
+function openEventEditor(newsNumber) {
+  const url = new URL("./event-editor.html", location.href);
+  url.searchParams.set("news_number", String(newsNumber));
+  window.location.assign(url.href);
 }
 
-async function openNewsEditor(issue, isNew = false) {
-  const token = state.renderToken;
-  content.innerHTML = '<div class="panel"><div class="news-loading">편집 화면을 불러오는 중…</div></div>';
-  try {
-    const response = await fetch("./editor.html", { cache: "no-store" });
-    if (!response.ok) throw new Error("신문 편집 화면을 불러오지 못했습니다.");
-    const markup = await response.text();
-    const parsed = new DOMParser().parseFromString(markup, "text/html");
-    const auth = parsed.querySelector("#editorAuth");
-    const app = parsed.querySelector("#editorApp");
-    const toastNode = parsed.querySelector("#editorToast");
-    if (!auth || !app) throw new Error("편집 화면 구조가 올바르지 않습니다.");
-    if (token !== state.renderToken) return;
-    content.innerHTML = "";
-    const host = document.createElement("div");
-    host.className = "spa-editor-host";
-    host.append(auth, app);
-    if (toastNode) host.append(toastNode);
-    content.append(host);
-    const url = new URL(location.href);
-    url.search = "";
-    url.searchParams.set("issue", String(issue));
-    if (isNew) url.searchParams.set("new", "1");
-    url.hash = "#news-editor";
-    history.pushState({ page: "news-editor", issue, isNew }, "", url);
-    await import(`./editor.js?spa=${Date.now()}`);
-  } catch (error) {
-    console.error("신문 편집기 통합 오류:", error);
-    content.innerHTML = `<div class="panel warning">${esc(error.message || "편집기를 열지 못했습니다.")}<button class="secondary" id="returnNews">목록으로</button></div>`;
-    $("#returnNews").onclick = () => render("news");
-  }
+function openNewsEditor(issue, isNew = false) {
+  const url = new URL("./editor.html", location.href);
+  url.searchParams.set("issue", String(issue));
+  if (isNew) url.searchParams.set("new", "1");
+  window.location.assign(url.href);
 }
 
 /* =====================================================
