@@ -218,15 +218,11 @@ function answerNumber(v) {
 ========================================================= */
 
 function goList() {
-  const url = new URL(location.href);
-  url.search = "";
-  url.hash = "#news";
-  history.replaceState({ page: "news" }, "", url);
-  if (typeof window.doriAdminRender === "function") window.doriAdminRender("news");
+  window.location.assign("./index.html#news");
 }
 
 $("#backList").onclick = goList;
-$("#backAdmin").onclick = goList;
+$("#backAdmin").onclick = () => window.location.assign("./index.html");
 
 
 /* =========================================================
